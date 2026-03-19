@@ -1,3 +1,4 @@
+import sqlite3
 import streamlit as st
 from app.database import (
     init_db,
@@ -153,6 +154,7 @@ def tela_cadastrar_caixa():
                     comprimento=comprimento,
                 )
                 st.success(f"Caixa '{nome_limpo}' cadastrada com sucesso.")
+        
 
 
 def tela_calcular_melhor_caixa():

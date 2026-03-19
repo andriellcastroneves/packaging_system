@@ -5,7 +5,12 @@ DB_NAME = "caixas.db"
 
 
 def get_connection():
-    return sqlite3.connect(DB_NAME, check_same_thread=False)
+    conn = sqlite3.connect(DB_NAME, check_same_thread=False)
+    return conn
+
+
+def normalizar_nome(nome):
+    return nome.strip()
 
 
 def init_db():
@@ -15,10 +20,10 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS caixas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            altura REAL NOT NULL,
-            largura REAL NOT NULL,
-            comprimento REAL NOT NULL
+            nome TEXT NOT NULL UNIQUE,
+            altura REAL NOT NULL CHECK (altura > 0),
+            largura REAL NOT NULL CHECK (largura > 0),
+            comprimento REAL NOT NULL CHECK (comprimento > 0)
         )
     """)
 
@@ -29,6 +34,8 @@ def init_db():
 def inserir_caixa(nome, altura, largura, comprimento):
     conn = get_connection()
     cursor = conn.cursor()
+
+    nome = normalizar_nome(nome)
 
     cursor.execute(
         """
@@ -81,7 +88,7 @@ def buscar_caixas_por_nome(termo):
         FROM caixas
         WHERE LOWER(nome) LIKE LOWER(?)
         ORDER BY id DESC
-    """, (f"%{termo}%",))
+    """, (f"%{termo.strip()}%",))
     caixas = cursor.fetchall()
 
     conn.close()
@@ -92,18 +99,20 @@ def nome_caixa_existe(nome, ignorar_id=None):
     conn = get_connection()
     cursor = conn.cursor()
 
+    nome = normalizar_nome(nome)
+
     if ignorar_id is None:
         cursor.execute("""
             SELECT 1
             FROM caixas
-            WHERE LOWER(TRIM(nome)) = LOWER(TRIM(?))
+            WHERE LOWER(nome) = LOWER(?)
             LIMIT 1
         """, (nome,))
     else:
         cursor.execute("""
             SELECT 1
             FROM caixas
-            WHERE LOWER(TRIM(nome)) = LOWER(TRIM(?))
+            WHERE LOWER(nome) = LOWER(?)
               AND id <> ?
             LIMIT 1
         """, (nome, ignorar_id))
@@ -117,6 +126,8 @@ def nome_caixa_existe(nome, ignorar_id=None):
 def atualizar_caixa(caixa_id, nome, altura, largura, comprimento):
     conn = get_connection()
     cursor = conn.cursor()
+
+    nome = normalizar_nome(nome)
 
     cursor.execute("""
         UPDATE caixas
