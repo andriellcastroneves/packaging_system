@@ -27,6 +27,24 @@ def init_db():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS historico_calculos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_altura REAL NOT NULL CHECK (item_altura > 0),
+            item_largura REAL NOT NULL CHECK (item_largura > 0),
+            item_comprimento REAL NOT NULL CHECK (item_comprimento > 0),
+            quantidade INTEGER NOT NULL CHECK (quantidade > 0),
+            caixa_id INTEGER,
+            caixa_nome TEXT NOT NULL,
+            capacidade INTEGER NOT NULL CHECK (capacidade >= 0),
+            rotacao_altura REAL,
+            rotacao_largura REAL,
+            rotacao_comprimento REAL,
+            criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (caixa_id) REFERENCES caixas (id)
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -147,3 +165,78 @@ def excluir_caixa(caixa_id):
 
     conn.commit()
     conn.close()
+
+
+def inserir_historico_calculo(
+    item_altura,
+    item_largura,
+    item_comprimento,
+    quantidade,
+    caixa_id,
+    caixa_nome,
+    capacidade,
+    rotacao,
+):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    rotacao_altura = rotacao[0] if rotacao else None
+    rotacao_largura = rotacao[1] if rotacao else None
+    rotacao_comprimento = rotacao[2] if rotacao else None
+
+    cursor.execute("""
+        INSERT INTO historico_calculos (
+            item_altura,
+            item_largura,
+            item_comprimento,
+            quantidade,
+            caixa_id,
+            caixa_nome,
+            capacidade,
+            rotacao_altura,
+            rotacao_largura,
+            rotacao_comprimento
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        item_altura,
+        item_largura,
+        item_comprimento,
+        quantidade,
+        caixa_id,
+        caixa_nome,
+        capacidade,
+        rotacao_altura,
+        rotacao_largura,
+        rotacao_comprimento,
+    ))
+
+    conn.commit()
+    conn.close()
+
+
+def listar_historico_calculos(limite=50):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            id,
+            item_altura,
+            item_largura,
+            item_comprimento,
+            quantidade,
+            caixa_nome,
+            capacidade,
+            rotacao_altura,
+            rotacao_largura,
+            rotacao_comprimento,
+            criado_em
+        FROM historico_calculos
+        ORDER BY id DESC
+        LIMIT ?
+    """, (limite,))
+
+    historico = cursor.fetchall()
+    conn.close()
+    return historico

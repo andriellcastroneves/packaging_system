@@ -9,6 +9,8 @@ from app.database import (
     atualizar_caixa,
     excluir_caixa,
     nome_caixa_existe,
+    inserir_historico_calculo,
+    listar_historico_calculos,
 )
 from app.services import encontrar_melhor_caixa
 
@@ -112,16 +114,19 @@ def tela_consultar_caixas():
                         elif nome_caixa_existe(nome_limpo, ignorar_id=caixa_id):
                             st.error("Já existe uma caixa cadastrada com esse nome.")
                         else:
-                            atualizar_caixa(
-                                caixa_id=caixa_id,
-                                nome=nome_limpo,
-                                altura=nova_altura,
-                                largura=nova_largura,
-                                comprimento=novo_comprimento,
-                            )
-                            st.session_state.caixa_em_edicao = None
-                            st.success("Caixa atualizada com sucesso.")
-                            st.rerun()
+                            try:
+                                atualizar_caixa(
+                                    caixa_id=caixa_id,
+                                    nome=nome_limpo,
+                                    altura=nova_altura,
+                                    largura=nova_largura,
+                                    comprimento=novo_comprimento,
+                                )
+                                st.session_state.caixa_em_edicao = None
+                                st.success("Caixa atualizada com sucesso.")
+                                st.rerun()
+                            except sqlite3.IntegrityError:
+                                st.error("Não foi possível atualizar. Verifique os dados informados.")
 
                     if cancelar:
                         st.session_state.caixa_em_edicao = None
@@ -147,14 +152,16 @@ def tela_cadastrar_caixa():
             elif nome_caixa_existe(nome_limpo):
                 st.error("Já existe uma caixa cadastrada com esse nome.")
             else:
-                inserir_caixa(
-                    nome=nome_limpo,
-                    altura=altura,
-                    largura=largura,
-                    comprimento=comprimento,
-                )
-                st.success(f"Caixa '{nome_limpo}' cadastrada com sucesso.")
-        
+                try:
+                    inserir_caixa(
+                        nome=nome_limpo,
+                        altura=altura,
+                        largura=largura,
+                        comprimento=comprimento,
+                    )
+                    st.success(f"Caixa '{nome_limpo}' cadastrada com sucesso.")
+                except sqlite3.IntegrityError:
+                    st.error("Não foi possível cadastrar. Verifique se o nome já existe e se as dimensões são válidas.")
 
 
 def tela_calcular_melhor_caixa():
@@ -184,6 +191,17 @@ def tela_calcular_melhor_caixa():
             )
 
             if melhor_caixa:
+                inserir_historico_calculo(
+                    item_altura=altura_item,
+                    item_largura=largura_item,
+                    item_comprimento=comprimento_item,
+                    quantidade=quantidade,
+                    caixa_id=melhor_caixa[0],
+                    caixa_nome=melhor_caixa[1],
+                    capacidade=capacidade,
+                    rotacao=rotacao,
+                )
+
                 st.success(f"Melhor caixa encontrada: {melhor_caixa[1]}")
                 st.write(f"**Capacidade máxima nesta caixa:** {capacidade} itens")
                 st.write(
@@ -198,6 +216,46 @@ def tela_calcular_melhor_caixa():
                     )
             else:
                 st.error("Nenhuma caixa cadastrada comporta essa quantidade de itens.")
+
+
+def tela_historico_calculos():
+    st.header("🕘 Histórico de cálculos")
+
+    historico = listar_historico_calculos()
+
+    if not historico:
+        st.warning("Ainda não há cálculos registrados.")
+        return
+
+    for registro in historico:
+        (
+            historico_id,
+            item_altura,
+            item_largura,
+            item_comprimento,
+            quantidade,
+            caixa_nome,
+            capacidade,
+            rotacao_altura,
+            rotacao_largura,
+            rotacao_comprimento,
+            criado_em,
+        ) = registro
+
+        with st.container(border=True):
+            st.write(f"**Registro:** {historico_id}")
+            st.write(f"**Data/Hora:** {criado_em}")
+            st.write(
+                f"**Item consultado:** {item_altura} x {item_largura} x {item_comprimento} cm"
+            )
+            st.write(f"**Quantidade:** {quantidade}")
+            st.write(f"**Caixa sugerida:** {caixa_nome}")
+            st.write(f"**Capacidade na caixa:** {capacidade} itens")
+
+            if rotacao_altura and rotacao_largura and rotacao_comprimento:
+                st.write(
+                    f"**Rotação usada:** {rotacao_altura} x {rotacao_largura} x {rotacao_comprimento} cm"
+                )
 
 
 def run_app():
@@ -220,6 +278,7 @@ def run_app():
             "Consultar caixas cadastradas",
             "Cadastrar nova caixa",
             "Calcular melhor caixa",
+            "Histórico de cálculos",
         ],
     )
 
@@ -231,3 +290,6 @@ def run_app():
 
     elif opcao == "Calcular melhor caixa":
         tela_calcular_melhor_caixa()
+
+    elif opcao == "Histórico de cálculos":
+        tela_historico_calculos()
