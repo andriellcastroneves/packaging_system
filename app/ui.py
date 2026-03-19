@@ -4,8 +4,10 @@ from app.database import (
     inserir_caixa,
     listar_caixas,
     buscar_caixa_por_id,
+    buscar_caixas_por_nome,
     atualizar_caixa,
     excluir_caixa,
+    nome_caixa_existe,
 )
 from app.services import encontrar_melhor_caixa
 
@@ -13,13 +15,21 @@ from app.services import encontrar_melhor_caixa
 def tela_consultar_caixas():
     st.header("📋 Consultar caixas cadastradas")
 
-    caixas = listar_caixas()
+    termo_busca = st.text_input("Buscar caixa por nome")
+
+    if termo_busca.strip():
+        caixas = buscar_caixas_por_nome(termo_busca.strip())
+    else:
+        caixas = listar_caixas()
 
     if not caixas:
-        st.warning("Nenhuma caixa cadastrada ainda.")
+        st.warning("Nenhuma caixa encontrada.")
         return
 
     st.subheader("Lista de caixas")
+
+    caixa_em_edicao = st.session_state.get("caixa_em_edicao")
+    caixa_em_exclusao = st.session_state.get("caixa_em_exclusao")
 
     for caixa in caixas:
         caixa_id, nome, altura, largura, comprimento = caixa
@@ -37,50 +47,84 @@ def tela_consultar_caixas():
             with col2:
                 if st.button("Editar", key=f"editar_{caixa_id}"):
                     st.session_state.caixa_em_edicao = caixa_id
+                    st.session_state.caixa_em_exclusao = None
+                    st.rerun()
 
-                if st.button("Excluir", key=f"excluir_{caixa_id}"):
+                if st.button("Excluir", key=f"pedir_exclusao_{caixa_id}"):
+                    st.session_state.caixa_em_exclusao = caixa_id
+                    st.session_state.caixa_em_edicao = None
+                    st.rerun()
+
+            if caixa_em_exclusao == caixa_id:
+                st.error(
+                    f"Confirma a exclusão da caixa '{nome}'? Essa ação não pode ser desfeita."
+                )
+                col_confirmar, col_cancelar = st.columns(2)
+
+                if col_confirmar.button("✅ Confirmar exclusão", key=f"confirmar_exclusao_{caixa_id}"):
                     excluir_caixa(caixa_id)
+                    st.session_state.caixa_em_exclusao = None
                     st.success(f"Caixa '{nome}' excluída com sucesso.")
                     st.rerun()
 
-    caixa_em_edicao = st.session_state.get("caixa_em_edicao")
+                if col_cancelar.button("❌ Cancelar", key=f"cancelar_exclusao_{caixa_id}"):
+                    st.session_state.caixa_em_exclusao = None
+                    st.rerun()
 
-    if caixa_em_edicao:
-        caixa = buscar_caixa_por_id(caixa_em_edicao)
+            if caixa_em_edicao == caixa_id:
+                st.divider()
+                st.subheader("✏️ Editar caixa")
 
-        if caixa:
-            st.divider()
-            st.subheader("✏️ Editar caixa")
+                with st.form(f"form_editar_caixa_{caixa_id}"):
+                    novo_nome = st.text_input("Nome da caixa", value=nome)
+                    nova_altura = st.number_input(
+                        "Altura (cm)",
+                        min_value=0.01,
+                        value=float(altura),
+                        format="%.2f",
+                        key=f"altura_edit_{caixa_id}",
+                    )
+                    nova_largura = st.number_input(
+                        "Largura (cm)",
+                        min_value=0.01,
+                        value=float(largura),
+                        format="%.2f",
+                        key=f"largura_edit_{caixa_id}",
+                    )
+                    novo_comprimento = st.number_input(
+                        "Comprimento (cm)",
+                        min_value=0.01,
+                        value=float(comprimento),
+                        format="%.2f",
+                        key=f"comprimento_edit_{caixa_id}",
+                    )
 
-            with st.form("form_editar_caixa"):
-                novo_nome = st.text_input("Nome da caixa", value=caixa[1])
-                nova_altura = st.number_input("Altura (cm)", min_value=0.01, value=float(caixa[2]), format="%.2f")
-                nova_largura = st.number_input("Largura (cm)", min_value=0.01, value=float(caixa[3]), format="%.2f")
-                novo_comprimento = st.number_input("Comprimento (cm)", min_value=0.01, value=float(caixa[4]), format="%.2f")
+                    col_salvar, col_cancelar = st.columns(2)
+                    salvar = col_salvar.form_submit_button("Salvar alterações")
+                    cancelar = col_cancelar.form_submit_button("Cancelar")
 
-                col_salvar, col_cancelar = st.columns(2)
+                    if salvar:
+                        nome_limpo = novo_nome.strip()
 
-                salvar = col_salvar.form_submit_button("Salvar alterações")
-                cancelar = col_cancelar.form_submit_button("Cancelar")
+                        if not nome_limpo:
+                            st.error("Informe o nome da caixa.")
+                        elif nome_caixa_existe(nome_limpo, ignorar_id=caixa_id):
+                            st.error("Já existe uma caixa cadastrada com esse nome.")
+                        else:
+                            atualizar_caixa(
+                                caixa_id=caixa_id,
+                                nome=nome_limpo,
+                                altura=nova_altura,
+                                largura=nova_largura,
+                                comprimento=novo_comprimento,
+                            )
+                            st.session_state.caixa_em_edicao = None
+                            st.success("Caixa atualizada com sucesso.")
+                            st.rerun()
 
-                if salvar:
-                    if not novo_nome.strip():
-                        st.error("Informe o nome da caixa.")
-                    else:
-                        atualizar_caixa(
-                            caixa_id=caixa_em_edicao,
-                            nome=novo_nome.strip(),
-                            altura=nova_altura,
-                            largura=nova_largura,
-                            comprimento=novo_comprimento,
-                        )
-                        st.success("Caixa atualizada com sucesso.")
+                    if cancelar:
                         st.session_state.caixa_em_edicao = None
                         st.rerun()
-
-                if cancelar:
-                    st.session_state.caixa_em_edicao = None
-                    st.rerun()
 
 
 def tela_cadastrar_caixa():
@@ -95,16 +139,20 @@ def tela_cadastrar_caixa():
         submitted = st.form_submit_button("Cadastrar caixa")
 
         if submitted:
-            if not nome.strip():
+            nome_limpo = nome.strip()
+
+            if not nome_limpo:
                 st.error("Informe o nome da caixa.")
+            elif nome_caixa_existe(nome_limpo):
+                st.error("Já existe uma caixa cadastrada com esse nome.")
             else:
                 inserir_caixa(
-                    nome=nome.strip(),
+                    nome=nome_limpo,
                     altura=altura,
                     largura=largura,
                     comprimento=comprimento,
                 )
-                st.success(f"Caixa '{nome}' cadastrada com sucesso.")
+                st.success(f"Caixa '{nome_limpo}' cadastrada com sucesso.")
 
 
 def tela_calcular_melhor_caixa():
@@ -157,6 +205,9 @@ def run_app():
 
     if "caixa_em_edicao" not in st.session_state:
         st.session_state.caixa_em_edicao = None
+
+    if "caixa_em_exclusao" not in st.session_state:
+        st.session_state.caixa_em_exclusao = None
 
     st.title("📦 Sistema Inteligente de Embalagem")
     st.info("Todas as medidas devem ser informadas em centímetros (cm).")

@@ -72,6 +72,48 @@ def buscar_caixa_por_id(caixa_id):
     return caixa
 
 
+def buscar_caixas_por_nome(termo):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nome, altura, largura, comprimento
+        FROM caixas
+        WHERE LOWER(nome) LIKE LOWER(?)
+        ORDER BY id DESC
+    """, (f"%{termo}%",))
+    caixas = cursor.fetchall()
+
+    conn.close()
+    return caixas
+
+
+def nome_caixa_existe(nome, ignorar_id=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if ignorar_id is None:
+        cursor.execute("""
+            SELECT 1
+            FROM caixas
+            WHERE LOWER(TRIM(nome)) = LOWER(TRIM(?))
+            LIMIT 1
+        """, (nome,))
+    else:
+        cursor.execute("""
+            SELECT 1
+            FROM caixas
+            WHERE LOWER(TRIM(nome)) = LOWER(TRIM(?))
+              AND id <> ?
+            LIMIT 1
+        """, (nome, ignorar_id))
+
+    resultado = cursor.fetchone()
+    conn.close()
+
+    return resultado is not None
+
+
 def atualizar_caixa(caixa_id, nome, altura, largura, comprimento):
     conn = get_connection()
     cursor = conn.cursor()
