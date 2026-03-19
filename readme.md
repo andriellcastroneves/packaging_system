@@ -23,3 +23,19 @@ python -m streamlit run app.py
 git init
 git add .
 git commit -m "feat: estrutura inicial do projeto"
+
+---
+
+# 🔥 3. Subir pro Git (PASSO A PASSO)
+
+## 👉 Instala o Git
+- **:contentReference[oaicite:0]{index=0}**
+
+---
+
+## 👉 No terminal dentro da pasta do projeto:
+
+```bash
+git init
+git add .
+git commit -m "feat: estrutura inicial do projeto"

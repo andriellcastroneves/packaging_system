@@ -49,9 +49,48 @@ def listar_caixas():
     cursor.execute("""
         SELECT id, nome, altura, largura, comprimento
         FROM caixas
-        ORDER BY nome
+        ORDER BY id DESC
     """)
     caixas = cursor.fetchall()
 
     conn.close()
     return caixas
+
+
+def buscar_caixa_por_id(caixa_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nome, altura, largura, comprimento
+        FROM caixas
+        WHERE id = ?
+    """, (caixa_id,))
+    caixa = cursor.fetchone()
+
+    conn.close()
+    return caixa
+
+
+def atualizar_caixa(caixa_id, nome, altura, largura, comprimento):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE caixas
+        SET nome = ?, altura = ?, largura = ?, comprimento = ?
+        WHERE id = ?
+    """, (nome, altura, largura, comprimento, caixa_id))
+
+    conn.commit()
+    conn.close()
+
+
+def excluir_caixa(caixa_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM caixas WHERE id = ?", (caixa_id,))
+
+    conn.commit()
+    conn.close()
