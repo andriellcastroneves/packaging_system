@@ -368,6 +368,7 @@ def tela_historico_calculos():
 
 def tela_calcular_quantidade_por_peso():
     st.header("⚖️ Calcular quantidade por peso")
+    st.write("entrei na function")
     st.info("Todos os pesos devem ser informados em gramas (g).")
 
     with st.form("form_calculo_peso"):
@@ -414,7 +415,7 @@ def run_app():
         st.session_state.produto_em_exclusao = None
 
     st.title("📦 Sistema Inteligente de Embalagem")
-   # st.info("Todas as medidas devem ser informadas em centímetros (cm).")
+    st.info("Todas as medidas devem ser informadas em centímetros (cm).")
 
     opcao = st.sidebar.radio(
         "Escolha uma opção",
