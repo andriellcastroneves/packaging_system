@@ -418,29 +418,31 @@ def run_app():
     st.info("Todas as medidas devem ser informadas em centímetros (cm).")
 
     opcao = st.sidebar.radio(
-        "Escolha uma opção",
-        [
-            "Consultar caixas cadastradas",
-            "Cadastrar nova caixa",
-            "Consultar produtos cadastrados",
-            "Cadastrar novo produto",
-            "Calcular melhor caixa",
-            "Histórico de cálculos",
-            "Calcular quantidade por Peso",
-        ],
-    )
+    "Escolha uma opção",
+    [
+        "Consultar caixas cadastradas",
+        "Cadastrar nova caixa",
+        "Consultar produtos cadastrados",
+        "Cadastrar novo produto",
+        "Calcular melhor caixa",
+        "Histórico de cálculos",
+        "Calcular QTD por Peso",
+    ],
+)
 
-    if opcao == "Consultar caixas cadastradas":
-        tela_consultar_caixas()
-    elif opcao == "Cadastrar nova caixa":
-        tela_cadastrar_caixa()
-    elif opcao == "Consultar produtos cadastrados":
-        tela_consultar_produtos()
-    elif opcao == "Cadastrar novo produto":
-        tela_cadastrar_produto()
-    elif opcao == "Calcular melhor caixa":
-        tela_calcular_melhor_caixa()
-    elif opcao == "Histórico de cálculos":
-        tela_historico_calculos()
-    elif opcao == "Calcular quantidade por peso":
-        tela_calcular_quantidade_por_peso()
+st.write(f"DEBUG opção selecionada: {opcao}")
+
+if opcao == "Consultar caixas cadastradas":
+    tela_consultar_caixas()
+elif opcao == "Cadastrar nova caixa":
+    tela_cadastrar_caixa()
+elif opcao == "Consultar produtos cadastrados":
+    tela_consultar_produtos()
+elif opcao == "Cadastrar novo produto":
+    tela_cadastrar_produto()
+elif opcao == "Calcular melhor caixa":
+    tela_calcular_melhor_caixa()
+elif opcao == "Histórico de cálculos":
+    tela_historico_calculos()
+elif opcao == "Calcular QTD por Peso":
+    tela_calcular_quantidade_por_peso()
