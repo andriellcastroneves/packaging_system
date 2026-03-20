@@ -14,26 +14,26 @@ def init_db():
         CREATE TABLE IF NOT EXISTS caixas (
             id SERIAL PRIMARY KEY,
             nome TEXT UNIQUE NOT NULL,
-            altura FLOAT NOT NULL CHECK (altura > 0),
-            largura FLOAT NOT NULL CHECK (largura > 0),
-            comprimento FLOAT NOT NULL CHECK (comprimento > 0)
+            altura DOUBLE PRECISION NOT NULL CHECK (altura > 0),
+            largura DOUBLE PRECISION NOT NULL CHECK (largura > 0),
+            comprimento DOUBLE PRECISION NOT NULL CHECK (comprimento > 0)
         );
     """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS historico_calculos (
             id SERIAL PRIMARY KEY,
-            item_altura FLOAT NOT NULL,
-            item_largura FLOAT NOT NULL,
-            item_comprimento FLOAT NOT NULL,
-            quantidade INT NOT NULL,
-            caixa_id INT,
-            caixa_nome TEXT,
-            capacidade INT,
-            rotacao_altura FLOAT,
-            rotacao_largura FLOAT,
-            rotacao_comprimento FLOAT,
-            criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            item_altura DOUBLE PRECISION NOT NULL CHECK (item_altura > 0),
+            item_largura DOUBLE PRECISION NOT NULL CHECK (item_largura > 0),
+            item_comprimento DOUBLE PRECISION NOT NULL CHECK (item_comprimento > 0),
+            quantidade INTEGER NOT NULL CHECK (quantidade > 0),
+            caixa_id INTEGER,
+            caixa_nome TEXT NOT NULL,
+            capacidade INTEGER NOT NULL CHECK (capacidade >= 0),
+            rotacao_altura DOUBLE PRECISION,
+            rotacao_largura DOUBLE PRECISION,
+            rotacao_comprimento DOUBLE PRECISION,
+            criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
     """)
 
@@ -60,7 +60,44 @@ def listar_caixas():
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM caixas ORDER BY id DESC")
+    cursor.execute("""
+        SELECT id, nome, altura, largura, comprimento
+        FROM caixas
+        ORDER BY id DESC
+    """)
+    caixas = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return caixas
+
+
+def buscar_caixa_por_id(caixa_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nome, altura, largura, comprimento
+        FROM caixas
+        WHERE id = %s
+    """, (caixa_id,))
+    caixa = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+    return caixa
+
+
+def buscar_caixas_por_nome(termo):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nome, altura, largura, comprimento
+        FROM caixas
+        WHERE LOWER(nome) LIKE LOWER(%s)
+        ORDER BY id DESC
+    """, (f"%{termo.strip()}%",))
     caixas = cursor.fetchall()
 
     cursor.close()
@@ -72,23 +109,27 @@ def nome_caixa_existe(nome, ignorar_id=None):
     conn = get_connection()
     cursor = conn.cursor()
 
-    if ignorar_id:
+    if ignorar_id is None:
         cursor.execute("""
-            SELECT 1 FROM caixas
+            SELECT 1
+            FROM caixas
             WHERE LOWER(nome) = LOWER(%s)
-            AND id != %s
-        """, (nome.strip(), ignorar_id))
+            LIMIT 1
+        """, (nome.strip(),))
     else:
         cursor.execute("""
-            SELECT 1 FROM caixas
+            SELECT 1
+            FROM caixas
             WHERE LOWER(nome) = LOWER(%s)
-        """, (nome.strip(),))
+              AND id <> %s
+            LIMIT 1
+        """, (nome.strip(), ignorar_id))
 
-    existe = cursor.fetchone()
+    resultado = cursor.fetchone()
+
     cursor.close()
     conn.close()
-
-    return existe is not None
+    return resultado is not None
 
 
 def atualizar_caixa(caixa_id, nome, altura, largura, comprimento):
@@ -97,8 +138,8 @@ def atualizar_caixa(caixa_id, nome, altura, largura, comprimento):
 
     cursor.execute("""
         UPDATE caixas
-        SET nome=%s, altura=%s, largura=%s, comprimento=%s
-        WHERE id=%s
+        SET nome = %s, altura = %s, largura = %s, comprimento = %s
+        WHERE id = %s
     """, (nome.strip(), altura, largura, comprimento, caixa_id))
 
     conn.commit()
@@ -110,7 +151,7 @@ def excluir_caixa(caixa_id):
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("DELETE FROM caixas WHERE id=%s", (caixa_id,))
+    cursor.execute("DELETE FROM caixas WHERE id = %s", (caixa_id,))
 
     conn.commit()
     cursor.close()
@@ -132,11 +173,18 @@ def inserir_historico_calculo(
 
     cursor.execute("""
         INSERT INTO historico_calculos (
-            item_altura, item_largura, item_comprimento,
-            quantidade, caixa_id, caixa_nome,
-            capacidade, rotacao_altura, rotacao_largura, rotacao_comprimento
+            item_altura,
+            item_largura,
+            item_comprimento,
+            quantidade,
+            caixa_id,
+            caixa_nome,
+            capacidade,
+            rotacao_altura,
+            rotacao_largura,
+            rotacao_comprimento
         )
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         item_altura,
         item_largura,
@@ -155,53 +203,29 @@ def inserir_historico_calculo(
     conn.close()
 
 
-def listar_historico_calculos():
+def listar_historico_calculos(limite=50):
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT * FROM historico_calculos
+        SELECT
+            id,
+            item_altura,
+            item_largura,
+            item_comprimento,
+            quantidade,
+            caixa_nome,
+            capacidade,
+            rotacao_altura,
+            rotacao_largura,
+            rotacao_comprimento,
+            criado_em
+        FROM historico_calculos
         ORDER BY id DESC
-        LIMIT 50
-    """)
-
-    dados = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return dados
-
-def buscar_caixa_por_id(caixa_id):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT id, nome, altura, largura, comprimento
-        FROM caixas
-        WHERE id = %s
-    """, (caixa_id,))
-
-    caixa = cursor.fetchone()
+        LIMIT %s
+    """, (limite,))
+    historico = cursor.fetchall()
 
     cursor.close()
     conn.close()
-    return caixa
-
-
-def buscar_caixas_por_nome(termo):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT id, nome, altura, largura, comprimento
-        FROM caixas
-        WHERE LOWER(nome) LIKE LOWER(%s)
-        ORDER BY id DESC
-    """, (f"%{termo.strip()}%",))
-
-    caixas = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-    return caixas
+    return historico

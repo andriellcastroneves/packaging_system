@@ -1,4 +1,3 @@
-import sqlite3
 import psycopg2
 import streamlit as st
 from app.database import (
@@ -126,7 +125,7 @@ def tela_consultar_caixas():
                                 st.session_state.caixa_em_edicao = None
                                 st.success("Caixa atualizada com sucesso.")
                                 st.rerun()
-                            except sqlite3.IntegrityError:
+                            except Exception:
                                 st.error("Não foi possível atualizar. Verifique os dados informados.")
 
                     if cancelar:
@@ -161,7 +160,7 @@ def tela_cadastrar_caixa():
                         comprimento=comprimento,
                     )
                     st.success(f"Caixa '{nome_limpo}' cadastrada com sucesso.")
-                except sqlite3.IntegrityError:
+                except Exception:
                     st.error("Não foi possível cadastrar. Verifique se o nome já existe e se as dimensões são válidas.")
 
 
