@@ -389,14 +389,14 @@ def tela_calcular_quantidade_por_peso():
             quantidade_estimada = peso_total / peso_unitario
             quantidade_arredondada = round(quantidade_estimada)
 
-    st.success("Cálculo realizado com sucesso.")
-    st.write(f"**Item:** {item_limpo}")
-    st.write(f"**Quantidade da amostra:** {quantidade_amostra} unidades")
-    st.write(f"**Peso da amostra:** {peso_amostra:.2f} g")
-    st.write(f"**Peso total informado:** {peso_total:.2f} g")
-    st.write(f"**Peso por unidade:** {peso_unitario:.4f} g")
-    st.write(f"**Quantidade estimada:** {quantidade_estimada:.2f} unidades")
-    st.write(f"**Quantidade arredondada:** {quantidade_arredondada} unidades")               
+            st.success("Cálculo realizado com sucesso.")
+            st.write(f"**Item:** {item_limpo}")
+            st.write(f"**Quantidade da amostra:** {quantidade_amostra} unidades")
+            st.write(f"**Peso da amostra:** {peso_amostra:.2f} g")
+            st.write(f"**Peso total informado:** {peso_total:.2f} g")
+            st.write(f"**Peso por unidade:** {peso_unitario:.4f} g")
+            st.write(f"**Quantidade estimada:** {quantidade_estimada:.2f} unidades")
+            st.write(f"**Quantidade arredondada:** {quantidade_arredondada} unidades")               
 
 
 def run_app():
