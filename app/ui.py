@@ -425,7 +425,7 @@ def run_app():
             "Cadastrar novo produto",
             "Calcular melhor caixa",
             "Histórico de cálculos",
-            "Calcular QTD por Peso",
+            "Calcular quantidade por Peso",
         ],
     )
 
