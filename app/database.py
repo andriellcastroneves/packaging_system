@@ -21,8 +21,21 @@ def init_db():
     """)
 
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS produtos (
+            id SERIAL PRIMARY KEY,
+            nome TEXT UNIQUE NOT NULL,
+            altura DOUBLE PRECISION NOT NULL CHECK (altura > 0),
+            largura DOUBLE PRECISION NOT NULL CHECK (largura > 0),
+            comprimento DOUBLE PRECISION NOT NULL CHECK (comprimento > 0),
+            criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS historico_calculos (
             id SERIAL PRIMARY KEY,
+            produto_id INTEGER,
+            produto_nome TEXT NOT NULL,
             item_altura DOUBLE PRECISION NOT NULL CHECK (item_altura > 0),
             item_largura DOUBLE PRECISION NOT NULL CHECK (item_largura > 0),
             item_comprimento DOUBLE PRECISION NOT NULL CHECK (item_comprimento > 0),
@@ -41,6 +54,10 @@ def init_db():
     cursor.close()
     conn.close()
 
+
+# =========================
+# CAIXAS
+# =========================
 
 def inserir_caixa(nome, altura, largura, comprimento):
     conn = get_connection()
@@ -158,7 +175,133 @@ def excluir_caixa(caixa_id):
     conn.close()
 
 
+# =========================
+# PRODUTOS
+# =========================
+
+def inserir_produto(nome, altura, largura, comprimento):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO produtos (nome, altura, largura, comprimento)
+        VALUES (%s, %s, %s, %s)
+    """, (nome.strip(), altura, largura, comprimento))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def listar_produtos():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nome, altura, largura, comprimento
+        FROM produtos
+        ORDER BY nome ASC
+    """)
+    produtos = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return produtos
+
+
+def buscar_produto_por_id(produto_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nome, altura, largura, comprimento
+        FROM produtos
+        WHERE id = %s
+    """, (produto_id,))
+    produto = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+    return produto
+
+
+def buscar_produtos_por_nome(termo):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nome, altura, largura, comprimento
+        FROM produtos
+        WHERE LOWER(nome) LIKE LOWER(%s)
+        ORDER BY nome ASC
+    """, (f"%{termo.strip()}%",))
+    produtos = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return produtos
+
+
+def nome_produto_existe(nome, ignorar_id=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if ignorar_id is None:
+        cursor.execute("""
+            SELECT 1
+            FROM produtos
+            WHERE LOWER(nome) = LOWER(%s)
+            LIMIT 1
+        """, (nome.strip(),))
+    else:
+        cursor.execute("""
+            SELECT 1
+            FROM produtos
+            WHERE LOWER(nome) = LOWER(%s)
+              AND id <> %s
+            LIMIT 1
+        """, (nome.strip(), ignorar_id))
+
+    resultado = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+    return resultado is not None
+
+
+def atualizar_produto(produto_id, nome, altura, largura, comprimento):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE produtos
+        SET nome = %s, altura = %s, largura = %s, comprimento = %s
+        WHERE id = %s
+    """, (nome.strip(), altura, largura, comprimento, produto_id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def excluir_produto(produto_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM produtos WHERE id = %s", (produto_id,))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+# =========================
+# HISTÓRICO
+# =========================
+
 def inserir_historico_calculo(
+    produto_id,
+    produto_nome,
     item_altura,
     item_largura,
     item_comprimento,
@@ -173,6 +316,8 @@ def inserir_historico_calculo(
 
     cursor.execute("""
         INSERT INTO historico_calculos (
+            produto_id,
+            produto_nome,
             item_altura,
             item_largura,
             item_comprimento,
@@ -184,8 +329,10 @@ def inserir_historico_calculo(
             rotacao_largura,
             rotacao_comprimento
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
+        produto_id,
+        produto_nome,
         item_altura,
         item_largura,
         item_comprimento,
@@ -210,6 +357,7 @@ def listar_historico_calculos(limite=50):
     cursor.execute("""
         SELECT
             id,
+            produto_nome,
             item_altura,
             item_largura,
             item_comprimento,
