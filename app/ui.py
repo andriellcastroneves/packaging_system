@@ -1,4 +1,5 @@
 import sqlite3
+import psycopg2
 import streamlit as st
 from app.database import (
     init_db,
