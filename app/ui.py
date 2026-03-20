@@ -362,6 +362,41 @@ def tela_historico_calculos():
 
             if rotacao_altura and rotacao_largura and rotacao_comprimento:
                 st.write(f"**Rotação usada:** {rotacao_altura} x {rotacao_largura} x {rotacao_comprimento} cm")
+#================
+#calculator itens
+#===============
+
+def tela_calcular_quantidade_por_peso():
+            st.header("⚖️ Calcular quantidade por peso")
+            st.info("Todos os pesos devem ser informados em gramas (g).")
+
+            with st.form("form_calculo_peso"):
+                item = st.text_input("Nome do item")
+                quantidade_amostra = st.number_input("Quantidade da amostra", min_value=1, step=1)
+                peso_amostra = st.number_input("Peso da amostra (g)", min_value=0.01, format="%.2f")
+                peso_total = st.number_input("Peso total (g)", min_value=0.01, format="%.2f")
+
+                submitted = st.form_submit_button("Calcular quantidade")
+
+                if submitted:
+                    item_limpo = item.strip()
+
+                    if not item_limpo:
+                        st.error("Informe o nome do item.")
+                        return
+
+            peso_unitario = peso_amostra / quantidade_amostra
+            quantidade_estimada = peso_total / peso_unitario
+            quantidade_arredondada = round(quantidade_estimada)
+
+            st.success("Cálculo realizado com sucesso.")
+            st.write(f"**Item:** {item_limpo}")
+            st.write(f"**Quantidade da amostra:** {quantidade_amostra} unidades")
+            st.write(f"**Peso da amostra:** {peso_amostra:.2f} g")
+            st.write(f"**Peso total informado:** {peso_total:.2f} g")
+            st.write(f"**Peso por unidade:** {peso_unitario:.4f} g")
+            st.write(f"**Quantidade estimada:** {quantidade_estimada:.2f} unidades")
+            st.write(f"**Quantidade arredondada:** {quantidade_arredondada} unidades")               
 
 
 def run_app():
@@ -379,7 +414,7 @@ def run_app():
         st.session_state.produto_em_exclusao = None
 
     st.title("📦 Sistema Inteligente de Embalagem")
-    st.info("Todas as medidas devem ser informadas em centímetros (cm).")
+   # st.info("Todas as medidas devem ser informadas em centímetros (cm).")
 
     opcao = st.sidebar.radio(
         "Escolha uma opção",
@@ -390,6 +425,7 @@ def run_app():
             "Cadastrar novo produto",
             "Calcular melhor caixa",
             "Histórico de cálculos",
+            "Calcular QTD por Peso",
         ],
     )
 
@@ -405,3 +441,5 @@ def run_app():
         tela_calcular_melhor_caixa()
     elif opcao == "Histórico de cálculos":
         tela_historico_calculos()
+    elif opcao == "Calcular quantidade por peso":
+        tela_calcular_quantidade_por_peso()
