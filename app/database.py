@@ -171,3 +171,37 @@ def listar_historico_calculos():
     conn.close()
 
     return dados
+
+def buscar_caixa_por_id(caixa_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nome, altura, largura, comprimento
+        FROM caixas
+        WHERE id = %s
+    """, (caixa_id,))
+
+    caixa = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+    return caixa
+
+
+def buscar_caixas_por_nome(termo):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nome, altura, largura, comprimento
+        FROM caixas
+        WHERE LOWER(nome) LIKE LOWER(%s)
+        ORDER BY id DESC
+    """, (f"%{termo.strip()}%",))
+
+    caixas = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return caixas
