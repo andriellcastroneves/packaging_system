@@ -370,7 +370,7 @@ def tela_historico_calculos():
 
 def tela_calcular_quantidade_por_peso():
     st.header("⚖️ Calcular quantidade por peso")
-    st.write("entrei na function")
+    #st.write("entrei na function")
     st.info("Todos os pesos devem ser informados em gramas (g).")
 
     with st.form("form_calculo_peso"):
