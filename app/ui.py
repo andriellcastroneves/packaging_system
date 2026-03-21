@@ -395,7 +395,7 @@ def tela_calcular_quantidade_por_peso():
             st.write(f"**Quantidade da amostra:** {quantidade_amostra} unidades")
             st.write(f"**Peso da amostra:** {peso_amostra:.2f} g")
             st.write(f"**Peso total informado:** {peso_total:.2f} g")
-            st.write(f"**Peso por unidade:** {peso_unitario:.4f} g")
+            st.write(f"**Peso por unidade:** {peso_unitario:.2f} g")
             st.write(f"**Quantidade estimada:** {quantidade_estimada:.2f} unidades")
             st.write(f"**Quantidade arredondada:** {quantidade_arredondada} unidades")               
 
