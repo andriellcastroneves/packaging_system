@@ -429,7 +429,7 @@ def run_app():
             "Calcular quantidade por Peso",
         ],
     )
-    st.write(f"DEBUG opção selecionada: {opcao}")
+    #st.write(f"DEBUG opção selecionada: {opcao}")
     if opcao == "Consultar caixas cadastradas":
         tela_consultar_caixas()
     elif opcao == "Cadastrar nova caixa":
@@ -442,5 +442,5 @@ def run_app():
         tela_calcular_melhor_caixa()
     elif opcao == "Histórico de cálculos":
         tela_historico_calculos()
-    elif opcao == "Calcular quantidade por peso":
+    elif opcao == "Calcular quantidade por Peso":
         tela_calcular_quantidade_por_peso()
