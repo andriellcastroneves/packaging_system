@@ -115,6 +115,7 @@ def tela_consultar_caixas():
 
 def tela_cadastrar_caixa():
     st.header("📦 Cadastrar nova caixa")
+    st.info("Todas as medidas devem ser informadas em centímetros (cm).")
 
     with st.form("form_cadastro_caixa"):
         nome = st.text_input("Nome da caixa")
@@ -232,6 +233,7 @@ def tela_consultar_produtos():
 
 def tela_cadastrar_produto():
     st.header("📦 Cadastrar novo produto")
+    st.info("Todas as medidas devem ser informadas em centímetros (cm).")
 
     with st.form("form_cadastro_produto"):
         nome = st.text_input("Nome do produto")
@@ -415,7 +417,7 @@ def run_app():
         st.session_state.produto_em_exclusao = None
 
     st.title("📦 Sistema Inteligente de Embalagem")
-    st.info("Todas as medidas devem ser informadas em centímetros (cm).")
+    #st.info("Todas as medidas devem ser informadas em centímetros (cm).")
 
     opcao = st.sidebar.radio(
         "Escolha uma opção",
