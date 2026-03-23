@@ -21,6 +21,7 @@ from app.database import (
 from app.services import (
     encontrar_melhor_caixa,
     gerar_instrucao_embalagem,
+    ajustar_tampas_no_pedido,
     consolidar_embalagem,
 )
 
@@ -493,23 +494,24 @@ def tela_pedido_embalagem():
     col1, col2 = st.columns(2)
 
     if col1.button("Gerar embalagem do pedido"):
-        if not st.session_state.itens_pedido:
-            st.warning("Adicione pelo menos um item ao pedido.")
-        else:
-            resultados = []
+     if not st.session_state.itens_pedido:
+        st.warning("Adicione pelo menos um item ao pedido.")
+    else:
+        resultados = []
 
-            for item in st.session_state.itens_pedido:
-                instrucao = gerar_instrucao_embalagem(
-                    produto=item["produto"],
-                    quantidade=item["quantidade"],
-                    caixas=caixas,
-                )
-                resultados.append(instrucao)
+        for item in st.session_state.itens_pedido:
+            instrucao = gerar_instrucao_embalagem(
+                produto=item["produto"],
+                quantidade=item["quantidade"],
+                caixas=caixas,
+            )
+            resultados.append(instrucao)
 
-            resumo = consolidar_embalagem(resultados)
+        resultados = ajustar_tampas_no_pedido(resultados)
+        resumo = consolidar_embalagem(resultados)
 
-            st.session_state.resultado_pedido = resultados
-            st.session_state.resumo_pedido = resumo
+        st.session_state.resultado_pedido = resultados
+        st.session_state.resumo_pedido = resumo
 
     if col2.button("Limpar pedido"):
         st.session_state.itens_pedido = []

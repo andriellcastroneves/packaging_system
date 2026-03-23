@@ -105,8 +105,8 @@ def gerar_instrucao_embalagem(produto, quantidade, caixas):
         resultado["observacao"] = "Aplicar 3 voltas"
 
     elif tipo_embalagem == "tampa":
-        resultado["embalagem_principal"] = "Incluir junto na caixa"
-        resultado["observacao"] = "Produto deve acompanhar embalagem principal de outro item"
+        resultado["embalagem_principal"] = "Aguardando item principal em caixa"
+        resultado["observacao"] = "A tampa deve acompanhar um item embalado em caixa"
 
     elif tipo_embalagem == "caixa_desmontada":
         material = escolher_largura_bolha(altura, largura, comprimento)
@@ -123,6 +123,34 @@ def gerar_instrucao_embalagem(produto, quantidade, caixas):
         resultado["observacao"] = f"{obs_atual} | {complemento}" if obs_atual else complemento
 
     return resultado
+
+
+def ajustar_tampas_no_pedido(resultados):
+    """
+    Se houver itens embalados em caixa no pedido, as tampas passam a acompanhar
+    o primeiro item principal em caixa encontrado.
+    Caso contrário, a tampa fica como verificação manual.
+    """
+    item_principal_em_caixa = None
+
+    for resultado in resultados:
+        tipo = resultado.get("tipo_embalagem")
+        emb = resultado.get("embalagem_principal", "")
+
+        if tipo in ["caixa", "blister"] and emb.startswith("Caixa:"):
+            item_principal_em_caixa = resultado["produto"]
+            break
+
+    for resultado in resultados:
+        if resultado.get("tipo_embalagem") == "tampa":
+            if item_principal_em_caixa:
+                resultado["embalagem_principal"] = "Incluir junto na caixa"
+                resultado["observacao"] = f"Acompanhar item principal: {item_principal_em_caixa}"
+            else:
+                resultado["embalagem_principal"] = "Verificar manualmente"
+                resultado["observacao"] = "Não há item principal embalado em caixa neste pedido"
+
+    return resultados
 
 
 def consolidar_embalagem(resultados):
