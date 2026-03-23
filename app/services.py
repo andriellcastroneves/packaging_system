@@ -95,7 +95,7 @@ def gerar_instrucao_embalagem(produto, quantidade, caixas):
             resultado["embalagem_principal"] = "Nenhuma caixa encontrada"
             resultado["observacao"] = "Verificar manualmente"
 
-    elif tipo_embalagem in ["saco_feno_palha", "rolo_bolha"]:
+    elif tipo_embalagem in ["saco_feno_palha", "rolo_bolha","Esferovite"]:
         resultado["embalagem_principal"] = "Filme preto"
         resultado["observacao"] = "Aplicar 1 volta cobrindo todo o conteúdo"
 
