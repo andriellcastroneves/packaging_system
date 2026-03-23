@@ -95,7 +95,7 @@ def gerar_instrucao_embalagem(produto, quantidade, caixas):
             resultado["embalagem_principal"] = "Nenhuma caixa encontrada"
             resultado["observacao"] = "Verificar manualmente"
 
-    elif tipo_embalagem in ["saco_feno_palha", "rolo_bolha","Esferovite"]:
+    elif tipo_embalagem in ["saco_feno_palha", "rolo_bolha"]:
         resultado["embalagem_principal"] = "Filme preto"
         resultado["observacao"] = "Aplicar 1 volta cobrindo todo o conteúdo"
 
@@ -123,3 +123,30 @@ def gerar_instrucao_embalagem(produto, quantidade, caixas):
         resultado["observacao"] = f"{obs_atual} | {complemento}" if obs_atual else complemento
 
     return resultado
+
+
+def consolidar_embalagem(resultados):
+    resumo = {
+        "caixas": {},
+        "filme_preto": 0,
+        "plastico_bolha": {},
+        "outros": []
+    }
+
+    for r in resultados:
+        emb = r["embalagem_principal"] or ""
+
+        if emb.startswith("Caixa:"):
+            nome_caixa = emb.replace("Caixa:", "").strip()
+            resumo["caixas"][nome_caixa] = resumo["caixas"].get(nome_caixa, 0) + 1
+
+        elif "Filme preto" in emb:
+            resumo["filme_preto"] += 1
+
+        elif "Plástico bolha" in emb:
+            resumo["plastico_bolha"][emb] = resumo["plastico_bolha"].get(emb, 0) + 1
+
+        else:
+            resumo["outros"].append(r["produto"])
+
+    return resumo

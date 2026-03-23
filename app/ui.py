@@ -21,6 +21,7 @@ from app.database import (
 from app.services import (
     encontrar_melhor_caixa,
     gerar_instrucao_embalagem,
+    consolidar_embalagem,
 )
 
 
@@ -32,7 +33,6 @@ TIPOS_EMBALAGEM = [
     "rolo_cartonado",
     "tampa",
     "caixa_desmontada",
-    "Esferovite",
 ]
 
 
@@ -452,6 +452,9 @@ def tela_pedido_embalagem():
     if "resultado_pedido" not in st.session_state:
         st.session_state.resultado_pedido = []
 
+    if "resumo_pedido" not in st.session_state:
+        st.session_state.resumo_pedido = {}
+
     mapa_produtos = {produto[1]: produto for produto in produtos}
     nomes_produtos = list(mapa_produtos.keys())
 
@@ -503,11 +506,15 @@ def tela_pedido_embalagem():
                 )
                 resultados.append(instrucao)
 
+            resumo = consolidar_embalagem(resultados)
+
             st.session_state.resultado_pedido = resultados
+            st.session_state.resumo_pedido = resumo
 
     if col2.button("Limpar pedido"):
         st.session_state.itens_pedido = []
         st.session_state.resultado_pedido = []
+        st.session_state.resumo_pedido = {}
         st.rerun()
 
     if st.session_state.resultado_pedido:
@@ -520,6 +527,30 @@ def tela_pedido_embalagem():
                 st.write(f"**Tipo de embalagem:** {resultado['tipo_embalagem']}")
                 st.write(f"**Embalagem principal:** {resultado['embalagem_principal']}")
                 st.write(f"**Observação:** {resultado['observacao']}")
+
+    if st.session_state.resumo_pedido:
+        resumo = st.session_state.resumo_pedido
+
+        st.subheader("📊 Resumo consolidado")
+
+        if resumo["caixas"]:
+            st.write("📦 **Caixas:**")
+            for nome, qtd in resumo["caixas"].items():
+                st.write(f"- {nome} → {qtd}")
+
+        if resumo["filme_preto"] > 0:
+            st.write("🧻 **Filme preto:**")
+            st.write(f"- {resumo['filme_preto']} itens")
+
+        if resumo["plastico_bolha"]:
+            st.write("🫧 **Plástico bolha:**")
+            for tipo, qtd in resumo["plastico_bolha"].items():
+                st.write(f"- {tipo} → {qtd}")
+
+        if resumo["outros"]:
+            st.write("⚠️ **Outros / verificar manualmente:**")
+            for item in resumo["outros"]:
+                st.write(f"- {item}")
 
 
 def run_app():
