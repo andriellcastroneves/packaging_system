@@ -27,6 +27,7 @@ def init_db():
             altura DOUBLE PRECISION NOT NULL CHECK (altura > 0),
             largura DOUBLE PRECISION NOT NULL CHECK (largura > 0),
             comprimento DOUBLE PRECISION NOT NULL CHECK (comprimento > 0),
+            tipo_embalagem TEXT NOT NULL DEFAULT 'caixa',
             criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
     """)
@@ -179,14 +180,14 @@ def excluir_caixa(caixa_id):
 # PRODUTOS
 # =========================
 
-def inserir_produto(nome, altura, largura, comprimento):
+def inserir_produto(nome, altura, largura, comprimento, tipo_embalagem):
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-        INSERT INTO produtos (nome, altura, largura, comprimento)
-        VALUES (%s, %s, %s, %s)
-    """, (nome.strip(), altura, largura, comprimento))
+        INSERT INTO produtos (nome, altura, largura, comprimento, tipo_embalagem)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (nome.strip(), altura, largura, comprimento, tipo_embalagem))
 
     conn.commit()
     cursor.close()
@@ -198,7 +199,7 @@ def listar_produtos():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT id, nome, altura, largura, comprimento
+        SELECT id, nome, altura, largura, comprimento, tipo_embalagem
         FROM produtos
         ORDER BY nome ASC
     """)
@@ -214,7 +215,7 @@ def buscar_produto_por_id(produto_id):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT id, nome, altura, largura, comprimento
+        SELECT id, nome, altura, largura, comprimento, tipo_embalagem
         FROM produtos
         WHERE id = %s
     """, (produto_id,))
@@ -230,7 +231,7 @@ def buscar_produtos_por_nome(termo):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT id, nome, altura, largura, comprimento
+        SELECT id, nome, altura, largura, comprimento, tipo_embalagem
         FROM produtos
         WHERE LOWER(nome) LIKE LOWER(%s)
         ORDER BY nome ASC
@@ -269,15 +270,19 @@ def nome_produto_existe(nome, ignorar_id=None):
     return resultado is not None
 
 
-def atualizar_produto(produto_id, nome, altura, largura, comprimento):
+def atualizar_produto(produto_id, nome, altura, largura, comprimento, tipo_embalagem):
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
         UPDATE produtos
-        SET nome = %s, altura = %s, largura = %s, comprimento = %s
+        SET nome = %s,
+            altura = %s,
+            largura = %s,
+            comprimento = %s,
+            tipo_embalagem = %s
         WHERE id = %s
-    """, (nome.strip(), altura, largura, comprimento, produto_id))
+    """, (nome.strip(), altura, largura, comprimento, tipo_embalagem, produto_id))
 
     conn.commit()
     cursor.close()

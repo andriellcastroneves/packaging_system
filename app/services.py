@@ -56,3 +56,70 @@ def encontrar_melhor_caixa(item_dim, quantidade, caixas):
                 melhor_rotacao = rotacao
 
     return melhor_caixa, melhor_capacidade, melhor_rotacao
+
+
+def escolher_largura_bolha(altura, largura, comprimento):
+    maior_dim = max(altura, largura, comprimento)
+
+    if maior_dim <= 30:
+        return "Plástico bolha 30 cm"
+    elif maior_dim <= 60:
+        return "Plástico bolha 60 cm"
+    return "Plástico bolha 1 m"
+
+
+def gerar_instrucao_embalagem(produto, quantidade, caixas):
+    produto_id, nome, altura, largura, comprimento, tipo_embalagem = produto
+    nome_upper = nome.upper().strip()
+
+    resultado = {
+        "produto": nome,
+        "quantidade": quantidade,
+        "tipo_embalagem": tipo_embalagem,
+        "embalagem_principal": None,
+        "observacao": None,
+    }
+
+    if tipo_embalagem in ["caixa", "blister"]:
+        item_dim = (altura, largura, comprimento)
+        melhor_caixa, capacidade, rotacao = encontrar_melhor_caixa(
+            item_dim=item_dim,
+            quantidade=quantidade,
+            caixas=caixas,
+        )
+
+        if melhor_caixa:
+            resultado["embalagem_principal"] = f"Caixa: {melhor_caixa[1]}"
+            resultado["observacao"] = f"Capacidade da caixa: {capacidade} itens"
+        else:
+            resultado["embalagem_principal"] = "Nenhuma caixa encontrada"
+            resultado["observacao"] = "Verificar manualmente"
+
+    elif tipo_embalagem in ["saco_feno_palha", "rolo_bolha"]:
+        resultado["embalagem_principal"] = "Filme preto"
+        resultado["observacao"] = "Aplicar 1 volta cobrindo todo o conteúdo"
+
+    elif tipo_embalagem == "rolo_cartonado":
+        material = escolher_largura_bolha(altura, largura, comprimento)
+        resultado["embalagem_principal"] = material
+        resultado["observacao"] = "Aplicar 3 voltas"
+
+    elif tipo_embalagem == "tampa":
+        resultado["embalagem_principal"] = "Incluir junto na caixa"
+        resultado["observacao"] = "Produto deve acompanhar embalagem principal de outro item"
+
+    elif tipo_embalagem == "caixa_desmontada":
+        material = escolher_largura_bolha(altura, largura, comprimento)
+        resultado["embalagem_principal"] = material
+        resultado["observacao"] = "Enrolar em plástico bolha"
+
+    else:
+        resultado["embalagem_principal"] = "Tipo não mapeado"
+        resultado["observacao"] = "Verificar cadastro do produto"
+
+    if nome_upper.startswith("VD"):
+        obs_atual = resultado["observacao"] or ""
+        complemento = "Aplicar reforço com plástico bolha após embalagem"
+        resultado["observacao"] = f"{obs_atual} | {complemento}" if obs_atual else complemento
+
+    return resultado

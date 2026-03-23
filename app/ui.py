@@ -1,4 +1,3 @@
-import psycopg2
 import streamlit as st
 from app.database import (
     init_db,
@@ -19,7 +18,21 @@ from app.database import (
     inserir_historico_calculo,
     listar_historico_calculos,
 )
-from app.services import encontrar_melhor_caixa
+from app.services import (
+    encontrar_melhor_caixa,
+    gerar_instrucao_embalagem,
+)
+
+
+TIPOS_EMBALAGEM = [
+    "caixa",
+    "blister",
+    "saco_feno_palha",
+    "rolo_bolha",
+    "rolo_cartonado",
+    "tampa",
+    "caixa_desmontada",
+]
 
 
 # =========================
@@ -115,7 +128,6 @@ def tela_consultar_caixas():
 
 def tela_cadastrar_caixa():
     st.header("📦 Cadastrar nova caixa")
-    st.info("Todas as medidas devem ser informadas em centímetros (cm).")
 
     with st.form("form_cadastro_caixa"):
         nome = st.text_input("Nome da caixa")
@@ -159,7 +171,7 @@ def tela_consultar_produtos():
     produto_em_exclusao = st.session_state.get("produto_em_exclusao")
 
     for produto in produtos:
-        produto_id, nome, altura, largura, comprimento = produto
+        produto_id, nome, altura, largura, comprimento, tipo_embalagem = produto
 
         with st.container(border=True):
             col1, col2 = st.columns([3, 2])
@@ -170,6 +182,7 @@ def tela_consultar_produtos():
                 st.write(f"**Altura:** {altura} cm")
                 st.write(f"**Largura:** {largura} cm")
                 st.write(f"**Comprimento:** {comprimento} cm")
+                st.write(f"**Tipo de embalagem:** {tipo_embalagem}")
 
             with col2:
                 if st.button("Editar", key=f"editar_produto_{produto_id}"):
@@ -206,6 +219,14 @@ def tela_consultar_produtos():
                     nova_largura = st.number_input("Largura (cm)", min_value=0.01, value=float(largura), format="%.2f", key=f"largura_produto_{produto_id}")
                     novo_comprimento = st.number_input("Comprimento (cm)", min_value=0.01, value=float(comprimento), format="%.2f", key=f"comprimento_produto_{produto_id}")
 
+                    indice_tipo = TIPOS_EMBALAGEM.index(tipo_embalagem) if tipo_embalagem in TIPOS_EMBALAGEM else 0
+                    novo_tipo_embalagem = st.selectbox(
+                        "Tipo de embalagem",
+                        TIPOS_EMBALAGEM,
+                        index=indice_tipo,
+                        key=f"tipo_produto_{produto_id}"
+                    )
+
                     col_salvar, col_cancelar = st.columns(2)
                     salvar = col_salvar.form_submit_button("Salvar alterações")
                     cancelar = col_cancelar.form_submit_button("Cancelar")
@@ -219,7 +240,14 @@ def tela_consultar_produtos():
                             st.error("Já existe um produto cadastrado com esse nome.")
                         else:
                             try:
-                                atualizar_produto(produto_id, nome_limpo, nova_altura, nova_largura, novo_comprimento)
+                                atualizar_produto(
+                                    produto_id,
+                                    nome_limpo,
+                                    nova_altura,
+                                    nova_largura,
+                                    novo_comprimento,
+                                    novo_tipo_embalagem,
+                                )
                                 st.session_state.produto_em_edicao = None
                                 st.success("Produto atualizado com sucesso.")
                                 st.rerun()
@@ -233,13 +261,13 @@ def tela_consultar_produtos():
 
 def tela_cadastrar_produto():
     st.header("📦 Cadastrar novo produto")
-    st.info("Todas as medidas devem ser informadas em centímetros (cm).")
 
     with st.form("form_cadastro_produto"):
         nome = st.text_input("Nome do produto")
         altura = st.number_input("Altura (cm)", min_value=0.01, format="%.2f")
         largura = st.number_input("Largura (cm)", min_value=0.01, format="%.2f")
         comprimento = st.number_input("Comprimento (cm)", min_value=0.01, format="%.2f")
+        tipo_embalagem = st.selectbox("Tipo de embalagem", TIPOS_EMBALAGEM)
 
         submitted = st.form_submit_button("Cadastrar produto")
 
@@ -252,7 +280,7 @@ def tela_cadastrar_produto():
                 st.error("Já existe um produto cadastrado com esse nome.")
             else:
                 try:
-                    inserir_produto(nome_limpo, altura, largura, comprimento)
+                    inserir_produto(nome_limpo, altura, largura, comprimento, tipo_embalagem)
                     st.success(f"Produto '{nome_limpo}' cadastrado com sucesso.")
                 except Exception:
                     st.error("Não foi possível cadastrar o produto.")
@@ -287,7 +315,7 @@ def tela_calcular_melhor_caixa():
 
         if submitted:
             produto = opcoes_produtos[nome_produto_selecionado]
-            produto_id, produto_nome, altura_item, largura_item, comprimento_item = produto
+            produto_id, produto_nome, altura_item, largura_item, comprimento_item, tipo_embalagem = produto
 
             item_dim = (altura_item, largura_item, comprimento_item)
 
@@ -364,13 +392,14 @@ def tela_historico_calculos():
 
             if rotacao_altura and rotacao_largura and rotacao_comprimento:
                 st.write(f"**Rotação usada:** {rotacao_altura} x {rotacao_largura} x {rotacao_comprimento} cm")
-#================
-#calculator itens
-#===============
+
+
+# =========================
+# CALCULAR QUANTIDADE POR PESO
+# =========================
 
 def tela_calcular_quantidade_por_peso():
     st.header("⚖️ Calcular quantidade por peso")
-    #st.write("entrei na function")
     st.info("Todos os pesos devem ser informados em gramas (g).")
 
     with st.form("form_calculo_peso"):
@@ -397,9 +426,99 @@ def tela_calcular_quantidade_por_peso():
             st.write(f"**Quantidade da amostra:** {quantidade_amostra} unidades")
             st.write(f"**Peso da amostra:** {peso_amostra:.2f} g")
             st.write(f"**Peso total informado:** {peso_total:.2f} g")
-            st.write(f"**Peso por unidade:** {peso_unitario:.2f} g")
+            st.write(f"**Peso por unidade:** {peso_unitario:.4f} g")
             st.write(f"**Quantidade estimada:** {quantidade_estimada:.2f} unidades")
-            st.write(f"**Quantidade arredondada:** {quantidade_arredondada} unidades")               
+            st.write(f"**Quantidade arredondada:** {quantidade_arredondada} unidades")
+
+
+# =========================
+# PEDIDO DE EMBALAGEM
+# =========================
+
+def tela_pedido_embalagem():
+    st.header("🧾 Pedido de embalagem")
+
+    produtos = listar_produtos()
+    caixas = listar_caixas()
+
+    if not produtos:
+        st.warning("Cadastre produtos antes de montar um pedido.")
+        return
+
+    if "itens_pedido" not in st.session_state:
+        st.session_state.itens_pedido = []
+
+    if "resultado_pedido" not in st.session_state:
+        st.session_state.resultado_pedido = []
+
+    mapa_produtos = {produto[1]: produto for produto in produtos}
+    nomes_produtos = list(mapa_produtos.keys())
+
+    with st.form("form_adicionar_item_pedido"):
+        nome_produto = st.selectbox("Produto", nomes_produtos)
+        quantidade = st.number_input("Quantidade", min_value=1, step=1)
+        submitted = st.form_submit_button("Adicionar item ao pedido")
+
+        if submitted:
+            produto = mapa_produtos[nome_produto]
+            st.session_state.itens_pedido.append({
+                "produto": produto,
+                "quantidade": quantidade
+            })
+            st.success("Item adicionado ao pedido.")
+            st.rerun()
+
+    st.subheader("Itens do pedido")
+
+    if not st.session_state.itens_pedido:
+        st.info("Nenhum item adicionado ainda.")
+    else:
+        for i, item in enumerate(st.session_state.itens_pedido):
+            produto = item["produto"]
+            quantidade = item["quantidade"]
+
+            with st.container(border=True):
+                st.write(f"**Produto:** {produto[1]}")
+                st.write(f"**Quantidade:** {quantidade}")
+                st.write(f"**Tipo de embalagem:** {produto[5]}")
+
+                if st.button("Remover item", key=f"remover_item_{i}"):
+                    st.session_state.itens_pedido.pop(i)
+                    st.rerun()
+
+    col1, col2 = st.columns(2)
+
+    if col1.button("Gerar embalagem do pedido"):
+        if not st.session_state.itens_pedido:
+            st.warning("Adicione pelo menos um item ao pedido.")
+        else:
+            resultados = []
+
+            for item in st.session_state.itens_pedido:
+                instrucao = gerar_instrucao_embalagem(
+                    produto=item["produto"],
+                    quantidade=item["quantidade"],
+                    caixas=caixas,
+                )
+                resultados.append(instrucao)
+
+            st.session_state.resultado_pedido = resultados
+
+    if col2.button("Limpar pedido"):
+        st.session_state.itens_pedido = []
+        st.session_state.resultado_pedido = []
+        st.rerun()
+
+    if st.session_state.resultado_pedido:
+        st.subheader("Resultado do pedido")
+
+        for resultado in st.session_state.resultado_pedido:
+            with st.container(border=True):
+                st.write(f"**Produto:** {resultado['produto']}")
+                st.write(f"**Quantidade:** {resultado['quantidade']}")
+                st.write(f"**Tipo de embalagem:** {resultado['tipo_embalagem']}")
+                st.write(f"**Embalagem principal:** {resultado['embalagem_principal']}")
+                st.write(f"**Observação:** {resultado['observacao']}")
 
 
 def run_app():
@@ -417,7 +536,6 @@ def run_app():
         st.session_state.produto_em_exclusao = None
 
     st.title("📦 Sistema Inteligente de Embalagem")
-    #st.info("Todas as medidas devem ser informadas em centímetros (cm).")
 
     opcao = st.sidebar.radio(
         "Escolha uma opção",
@@ -427,11 +545,12 @@ def run_app():
             "Consultar produtos cadastrados",
             "Cadastrar novo produto",
             "Calcular melhor caixa",
+            "Pedido de embalagem",
             "Histórico de cálculos",
-            "Calcular quantidade por Peso",
+            "Calcular quantidade por peso",
         ],
     )
-    #st.write(f"DEBUG opção selecionada: {opcao}")
+
     if opcao == "Consultar caixas cadastradas":
         tela_consultar_caixas()
     elif opcao == "Cadastrar nova caixa":
@@ -442,7 +561,9 @@ def run_app():
         tela_cadastrar_produto()
     elif opcao == "Calcular melhor caixa":
         tela_calcular_melhor_caixa()
+    elif opcao == "Pedido de embalagem":
+        tela_pedido_embalagem()
     elif opcao == "Histórico de cálculos":
         tela_historico_calculos()
-    elif opcao == "Calcular quantidade por Peso":
+    elif opcao == "Calcular quantidade por peso":
         tela_calcular_quantidade_por_peso()
