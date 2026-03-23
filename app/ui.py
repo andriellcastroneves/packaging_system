@@ -34,7 +34,7 @@ TIPOS_EMBALAGEM = [
     "rolo_cartonado",
     "tampa",
     "caixa_desmontada",
-    "esferovite"
+    "esferovite",
 ]
 
 
