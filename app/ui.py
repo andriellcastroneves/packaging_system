@@ -3,14 +3,12 @@ from app.database import (
     init_db,
     inserir_caixa,
     listar_caixas,
-    buscar_caixa_por_id,
     buscar_caixas_por_nome,
     atualizar_caixa,
     excluir_caixa,
     nome_caixa_existe,
     inserir_produto,
     listar_produtos,
-    buscar_produto_por_id,
     buscar_produtos_por_nome,
     atualizar_produto,
     excluir_produto,
@@ -34,40 +32,16 @@ TIPOS_EMBALAGEM = [
     "rolo_cartonado",
     "tampa",
     "caixa_desmontada",
-    "esferovite",
 ]
 
-
-# =========================
-# ESTILO
-# =========================
 
 def aplicar_estilo():
     st.markdown(
         """
         <style>
-            .main-title {
-                font-size: 2rem;
-                font-weight: 700;
-                margin-bottom: 0.2rem;
-            }
-            .sub-title {
-                color: #94a3b8;
-                font-size: 0.95rem;
-                margin-bottom: 1.2rem;
-            }
-            .section-title {
-                font-size: 1.15rem;
-                font-weight: 700;
-                margin-bottom: 0.6rem;
-            }
-            .soft-card {
-                border: 1px solid rgba(255,255,255,0.08);
-                border-radius: 16px;
-                padding: 14px 16px;
-                background: rgba(255,255,255,0.02);
-                margin-bottom: 12px;
-            }
+            .main-title { font-size: 2rem; font-weight: 700; margin-bottom: 0.2rem; }
+            .sub-title { color: #94a3b8; font-size: 0.95rem; margin-bottom: 1.2rem; }
+            .section-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.6rem; }
             .metric-card {
                 border: 1px solid rgba(255,255,255,0.08);
                 border-radius: 16px;
@@ -75,15 +49,8 @@ def aplicar_estilo():
                 background: rgba(255,255,255,0.03);
                 text-align: center;
             }
-            .metric-label {
-                font-size: 0.9rem;
-                color: #94a3b8;
-            }
-            .metric-value {
-                font-size: 1.6rem;
-                font-weight: 700;
-                margin-top: 4px;
-            }
+            .metric-label { font-size: 0.9rem; color: #94a3b8; }
+            .metric-value { font-size: 1.6rem; font-weight: 700; margin-top: 4px; }
             .result-box {
                 border-left: 4px solid #3b82f6;
                 padding: 10px 14px;
@@ -127,49 +94,24 @@ def render_metricas_topo():
 
     col1, col2, col3, col4 = st.columns(4)
 
-    with col1:
-        st.markdown(
-            f"""
-            <div class="metric-card">
-                <div class="metric-label">Caixas cadastradas</div>
-                <div class="metric-value">{total_caixas}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    metricas = [
+        ("Caixas cadastradas", total_caixas),
+        ("Produtos cadastrados", total_produtos),
+        ("Itens no pedido", itens_pedido),
+        ("Resultados gerados", resultados),
+    ]
 
-    with col2:
-        st.markdown(
-            f"""
-            <div class="metric-card">
-                <div class="metric-label">Produtos cadastrados</div>
-                <div class="metric-value">{total_produtos}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with col3:
-        st.markdown(
-            f"""
-            <div class="metric-card">
-                <div class="metric-label">Itens no pedido</div>
-                <div class="metric-value">{itens_pedido}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with col4:
-        st.markdown(
-            f"""
-            <div class="metric-card">
-                <div class="metric-label">Resultados gerados</div>
-                <div class="metric-value">{resultados}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    for col, (label, value) in zip([col1, col2, col3, col4], metricas):
+        with col:
+            st.markdown(
+                f"""
+                <div class="metric-card">
+                    <div class="metric-label">{label}</div>
+                    <div class="metric-value">{value}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 
 def titulo_secao(texto):
@@ -189,15 +131,10 @@ def badge_tipo(tipo):
     return mapa.get(tipo, tipo)
 
 
-# =========================
-# CAIXAS
-# =========================
-
 def tela_consultar_caixas():
     titulo_secao("📋 Consultar caixas cadastradas")
 
     termo_busca = st.text_input("Buscar caixa por nome")
-
     caixas = buscar_caixas_por_nome(termo_busca.strip()) if termo_busca.strip() else listar_caixas()
 
     if not caixas:
@@ -251,9 +188,13 @@ def tela_consultar_caixas():
 
                 with st.form(f"form_editar_caixa_{caixa_id}"):
                     novo_nome = st.text_input("Nome da caixa", value=nome)
-                    nova_altura = st.number_input("Altura (cm)", min_value=0.01, value=float(altura), format="%.2f", key=f"altura_caixa_{caixa_id}")
-                    nova_largura = st.number_input("Largura (cm)", min_value=0.01, value=float(largura), format="%.2f", key=f"largura_caixa_{caixa_id}")
-                    novo_comprimento = st.number_input("Comprimento (cm)", min_value=0.01, value=float(comprimento), format="%.2f", key=f"comprimento_caixa_{caixa_id}")
+                    c1, c2, c3 = st.columns(3)
+                    with c1:
+                        nova_altura = st.number_input("Altura (cm)", min_value=0.01, value=float(altura), format="%.2f", key=f"altura_caixa_{caixa_id}")
+                    with c2:
+                        nova_largura = st.number_input("Largura (cm)", min_value=0.01, value=float(largura), format="%.2f", key=f"largura_caixa_{caixa_id}")
+                    with c3:
+                        novo_comprimento = st.number_input("Comprimento (cm)", min_value=0.01, value=float(comprimento), format="%.2f", key=f"comprimento_caixa_{caixa_id}")
 
                     c1, c2 = st.columns(2)
                     salvar = c1.form_submit_button("Salvar alterações", use_container_width=True)
@@ -261,19 +202,15 @@ def tela_consultar_caixas():
 
                     if salvar:
                         nome_limpo = novo_nome.strip()
-
                         if not nome_limpo:
                             st.error("Informe o nome da caixa.")
                         elif nome_caixa_existe(nome_limpo, ignorar_id=caixa_id):
                             st.error("Já existe uma caixa cadastrada com esse nome.")
                         else:
-                            try:
-                                atualizar_caixa(caixa_id, nome_limpo, nova_altura, nova_largura, novo_comprimento)
-                                st.session_state.caixa_em_edicao = None
-                                st.success("Caixa atualizada com sucesso.")
-                                st.rerun()
-                            except Exception:
-                                st.error("Não foi possível atualizar a caixa.")
+                            atualizar_caixa(caixa_id, nome_limpo, nova_altura, nova_largura, novo_comprimento)
+                            st.session_state.caixa_em_edicao = None
+                            st.success("Caixa atualizada com sucesso.")
+                            st.rerun()
 
                     if cancelar:
                         st.session_state.caixa_em_edicao = None
@@ -285,40 +222,31 @@ def tela_cadastrar_caixa():
 
     with st.form("form_cadastro_caixa", clear_on_submit=True):
         nome = st.text_input("Nome da caixa")
-        col1, col2, col3 = st.columns(3)
-        with col1:
+        c1, c2, c3 = st.columns(3)
+        with c1:
             altura = st.number_input("Altura (cm)", min_value=0.01, format="%.2f")
-        with col2:
+        with c2:
             largura = st.number_input("Largura (cm)", min_value=0.01, format="%.2f")
-        with col3:
+        with c3:
             comprimento = st.number_input("Comprimento (cm)", min_value=0.01, format="%.2f")
 
         submitted = st.form_submit_button("Cadastrar caixa", use_container_width=True)
 
         if submitted:
             nome_limpo = nome.strip()
-
             if not nome_limpo:
                 st.error("Informe o nome da caixa.")
             elif nome_caixa_existe(nome_limpo):
                 st.error("Já existe uma caixa cadastrada com esse nome.")
             else:
-                try:
-                    inserir_caixa(nome_limpo, altura, largura, comprimento)
-                    st.success(f"Caixa '{nome_limpo}' cadastrada com sucesso.")
-                except Exception:
-                    st.error("Não foi possível cadastrar a caixa.")
+                inserir_caixa(nome_limpo, altura, largura, comprimento)
+                st.success(f"Caixa '{nome_limpo}' cadastrada com sucesso.")
 
-
-# =========================
-# PRODUTOS
-# =========================
 
 def tela_consultar_produtos():
     titulo_secao("📋 Consultar produtos cadastrados")
 
     termo_busca = st.text_input("Buscar produto por nome")
-
     produtos = buscar_produtos_por_nome(termo_busca.strip()) if termo_busca.strip() else listar_produtos()
 
     if not produtos:
@@ -329,7 +257,7 @@ def tela_consultar_produtos():
     produto_em_exclusao = st.session_state.get("produto_em_exclusao")
 
     for produto in produtos:
-        produto_id, nome, altura, largura, comprimento, tipo_embalagem = produto
+        produto_id, nome, altura, largura, comprimento, tipo_embalagem, peso_unitario = produto
 
         with st.container(border=True):
             col1, col2 = st.columns([3, 1.2])
@@ -341,6 +269,7 @@ def tela_consultar_produtos():
                 st.write(f"Largura: **{largura} cm**")
                 st.write(f"Comprimento: **{comprimento} cm**")
                 st.write(f"Tipo de embalagem: **{badge_tipo(tipo_embalagem)}**")
+                st.write(f"Peso unitário: **{peso_unitario} kg**")
 
             with col2:
                 if st.button("Editar", key=f"editar_produto_{produto_id}", use_container_width=True):
@@ -373,23 +302,18 @@ def tela_consultar_produtos():
 
                 with st.form(f"form_editar_produto_{produto_id}"):
                     novo_nome = st.text_input("Nome do produto", value=nome)
-
-                    c1, c2, c3 = st.columns(3)
+                    c1, c2, c3, c4 = st.columns(4)
                     with c1:
                         nova_altura = st.number_input("Altura (cm)", min_value=0.01, value=float(altura), format="%.2f", key=f"altura_produto_{produto_id}")
                     with c2:
                         nova_largura = st.number_input("Largura (cm)", min_value=0.01, value=float(largura), format="%.2f", key=f"largura_produto_{produto_id}")
                     with c3:
                         novo_comprimento = st.number_input("Comprimento (cm)", min_value=0.01, value=float(comprimento), format="%.2f", key=f"comprimento_produto_{produto_id}")
+                    with c4:
+                        novo_peso_unitario = st.number_input("Peso unitário (kg)", min_value=0.01, value=float(peso_unitario), format="%.3f", key=f"peso_produto_{produto_id}")
 
                     indice_tipo = TIPOS_EMBALAGEM.index(tipo_embalagem) if tipo_embalagem in TIPOS_EMBALAGEM else 0
-                    novo_tipo_embalagem = st.selectbox(
-                        "Tipo de embalagem",
-                        TIPOS_EMBALAGEM,
-                        index=indice_tipo,
-                        format_func=badge_tipo,
-                        key=f"tipo_produto_{produto_id}"
-                    )
+                    novo_tipo_embalagem = st.selectbox("Tipo de embalagem", TIPOS_EMBALAGEM, index=indice_tipo, format_func=badge_tipo, key=f"tipo_produto_{produto_id}")
 
                     c1, c2 = st.columns(2)
                     salvar = c1.form_submit_button("Salvar alterações", use_container_width=True)
@@ -397,26 +321,23 @@ def tela_consultar_produtos():
 
                     if salvar:
                         nome_limpo = novo_nome.strip()
-
                         if not nome_limpo:
                             st.error("Informe o nome do produto.")
                         elif nome_produto_existe(nome_limpo, ignorar_id=produto_id):
                             st.error("Já existe um produto cadastrado com esse nome.")
                         else:
-                            try:
-                                atualizar_produto(
-                                    produto_id,
-                                    nome_limpo,
-                                    nova_altura,
-                                    nova_largura,
-                                    novo_comprimento,
-                                    novo_tipo_embalagem,
-                                )
-                                st.session_state.produto_em_edicao = None
-                                st.success("Produto atualizado com sucesso.")
-                                st.rerun()
-                            except Exception:
-                                st.error("Não foi possível atualizar o produto.")
+                            atualizar_produto(
+                                produto_id,
+                                nome_limpo,
+                                nova_altura,
+                                nova_largura,
+                                novo_comprimento,
+                                novo_tipo_embalagem,
+                                novo_peso_unitario,
+                            )
+                            st.session_state.produto_em_edicao = None
+                            st.success("Produto atualizado com sucesso.")
+                            st.rerun()
 
                     if cancelar:
                         st.session_state.produto_em_edicao = None
@@ -428,37 +349,29 @@ def tela_cadastrar_produto():
 
     with st.form("form_cadastro_produto", clear_on_submit=True):
         nome = st.text_input("Nome do produto")
-
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         with c1:
             altura = st.number_input("Altura (cm)", min_value=0.01, format="%.2f")
         with c2:
             largura = st.number_input("Largura (cm)", min_value=0.01, format="%.2f")
         with c3:
             comprimento = st.number_input("Comprimento (cm)", min_value=0.01, format="%.2f")
+        with c4:
+            peso_unitario = st.number_input("Peso unitário (kg)", min_value=0.01, format="%.3f")
 
         tipo_embalagem = st.selectbox("Tipo de embalagem", TIPOS_EMBALAGEM, format_func=badge_tipo)
-
         submitted = st.form_submit_button("Cadastrar produto", use_container_width=True)
 
         if submitted:
             nome_limpo = nome.strip()
-
             if not nome_limpo:
                 st.error("Informe o nome do produto.")
             elif nome_produto_existe(nome_limpo):
                 st.error("Já existe um produto cadastrado com esse nome.")
             else:
-                try:
-                    inserir_produto(nome_limpo, altura, largura, comprimento, tipo_embalagem)
-                    st.success(f"Produto '{nome_limpo}' cadastrado com sucesso.")
-                except Exception:
-                    st.error("Não foi possível cadastrar o produto.")
+                inserir_produto(nome_limpo, altura, largura, comprimento, tipo_embalagem, peso_unitario)
+                st.success(f"Produto '{nome_limpo}' cadastrado com sucesso.")
 
-
-# =========================
-# CÁLCULO UNITÁRIO
-# =========================
 
 def tela_calcular_melhor_caixa():
     titulo_secao("🧠 Calcular melhor caixa (item único)")
@@ -469,7 +382,6 @@ def tela_calcular_melhor_caixa():
     if not caixas:
         st.warning("Cadastre pelo menos uma caixa antes de fazer o cálculo.")
         return
-
     if not produtos:
         st.warning("Cadastre pelo menos um produto antes de fazer o cálculo.")
         return
@@ -480,12 +392,11 @@ def tela_calcular_melhor_caixa():
     with st.form("form_calculo"):
         nome_produto_selecionado = st.selectbox("Selecione o produto", nomes_produtos)
         quantidade = st.number_input("Quantidade de itens", min_value=1, step=1)
-
         submitted = st.form_submit_button("Calcular melhor caixa", use_container_width=True)
 
         if submitted:
             produto = opcoes_produtos[nome_produto_selecionado]
-            produto_id, produto_nome, altura_item, largura_item, comprimento_item, tipo_embalagem = produto
+            produto_id, produto_nome, altura_item, largura_item, comprimento_item, tipo_embalagem, peso_unitario = produto
 
             item_dim = (altura_item, largura_item, comprimento_item)
 
@@ -510,27 +421,21 @@ def tela_calcular_melhor_caixa():
                 )
 
                 st.success(f"Melhor caixa encontrada: {melhor_caixa[1]}")
-
                 with st.container(border=True):
                     st.write(f"**Produto:** {produto_nome}")
                     st.write(f"**Dimensões do produto:** {altura_item} x {largura_item} x {comprimento_item} cm")
+                    st.write(f"**Peso total:** {round(peso_unitario * quantidade, 3)} kg")
                     st.write(f"**Quantidade solicitada:** {quantidade}")
                     st.write(f"**Capacidade máxima nesta caixa:** {capacidade} itens")
                     st.write(f"**Dimensões da caixa:** {melhor_caixa[2]} x {melhor_caixa[3]} x {melhor_caixa[4]} cm")
-
                     if rotacao:
                         st.write(f"**Melhor rotação do item:** {rotacao[0]} x {rotacao[1]} x {rotacao[2]} cm")
             else:
                 st.error("Nenhuma caixa cadastrada comporta essa quantidade de itens.")
 
 
-# =========================
-# HISTÓRICO
-# =========================
-
 def tela_historico_calculos():
     titulo_secao("🕘 Histórico de cálculos")
-
     historico = listar_historico_calculos()
 
     if not historico:
@@ -561,14 +466,9 @@ def tela_historico_calculos():
             st.write(f"**Quantidade:** {quantidade}")
             st.write(f"**Caixa sugerida:** {caixa_nome}")
             st.write(f"**Capacidade na caixa:** {capacidade} itens")
-
             if rotacao_altura and rotacao_largura and rotacao_comprimento:
                 st.write(f"**Rotação usada:** {rotacao_altura} x {rotacao_largura} x {rotacao_comprimento} cm")
 
-
-# =========================
-# PESO
-# =========================
 
 def tela_calcular_quantidade_por_peso():
     titulo_secao("⚖️ Calcular quantidade por peso")
@@ -576,7 +476,6 @@ def tela_calcular_quantidade_por_peso():
 
     with st.form("form_calculo_peso"):
         item = st.text_input("Nome do item")
-
         c1, c2, c3 = st.columns(3)
         with c1:
             quantidade_amostra = st.number_input("Quantidade da amostra", min_value=1, step=1)
@@ -589,7 +488,6 @@ def tela_calcular_quantidade_por_peso():
 
         if submitted:
             item_limpo = item.strip()
-
             if not item_limpo:
                 st.error("Informe o nome do item.")
                 return
@@ -599,7 +497,6 @@ def tela_calcular_quantidade_por_peso():
             quantidade_arredondada = round(quantidade_estimada)
 
             st.success("Cálculo realizado com sucesso.")
-
             with st.container(border=True):
                 st.write(f"**Item:** {item_limpo}")
                 st.write(f"**Quantidade da amostra:** {quantidade_amostra} unidades")
@@ -610,17 +507,10 @@ def tela_calcular_quantidade_por_peso():
                 st.write(f"**Quantidade arredondada:** {quantidade_arredondada} unidades")
 
 
-# =========================
-# PEDIDO DE EMBALAGEM
-# =========================
-
 def render_resultado_item(resultado):
-    embalagem = resultado["embalagem_principal"] or ""
-    observacao = resultado["observacao"] or ""
-
-    if "Verificar manualmente" in embalagem or "Verificar manualmente" in observacao:
+    if "Verificar manualmente" in (resultado["embalagem_principal"] or "") or "Verificar manualmente" in (resultado["observacao"] or ""):
         classe = "danger-box"
-    elif "Incluir junto na caixa" in embalagem or "Acompanhar item principal" in observacao:
+    elif "Incluir junto na caixa" in (resultado["embalagem_principal"] or ""):
         classe = "warning-box"
     else:
         classe = "result-box"
@@ -629,19 +519,32 @@ def render_resultado_item(resultado):
         f"""
         <div class="{classe}">
             <strong>{resultado['produto']}</strong><br>
-            Quantidade: {resultado['quantidade']}<br>
+            Quantidade total: {resultado['quantidade']}<br>
+            Peso total: {resultado['peso_total']} kg<br>
             Tipo: {badge_tipo(resultado['tipo_embalagem'])}<br>
-            Embalagem principal: {resultado['embalagem_principal']}<br>
+            Resumo: {resultado['embalagem_principal']}<br>
             Observação: {resultado['observacao']}
         </div>
         """,
         unsafe_allow_html=True,
     )
 
+    volumes = resultado.get("volumes", [])
+    if volumes:
+        for volume in volumes:
+            st.write(
+                f"- Volume {volume['numero_volume']}: "
+                f"{volume['quantidade']} un | "
+                f"{volume['peso_total']} kg | "
+                f"{volume['embalagem_principal']}"
+            )
+            st.caption(volume["observacao"])
+
 
 def tela_pedido_embalagem():
     titulo_secao("🧾 Pedido de embalagem")
     st.caption("Monte o pedido com vários itens e gere automaticamente a instrução de embalagem por item.")
+    st.info("Regra global: cada volume pode ter no máximo 40 kg.")
 
     produtos = listar_produtos()
     caixas = listar_caixas()
@@ -652,10 +555,8 @@ def tela_pedido_embalagem():
 
     if "itens_pedido" not in st.session_state:
         st.session_state.itens_pedido = []
-
     if "resultado_pedido" not in st.session_state:
         st.session_state.resultado_pedido = []
-
     if "resumo_pedido" not in st.session_state:
         st.session_state.resumo_pedido = {}
 
@@ -667,7 +568,6 @@ def tela_pedido_embalagem():
     with col_esq:
         with st.container(border=True):
             st.subheader("Adicionar item ao pedido")
-
             with st.form("form_adicionar_item_pedido"):
                 nome_produto = st.selectbox("Produto", nomes_produtos)
                 quantidade = st.number_input("Quantidade", min_value=1, step=1)
@@ -686,7 +586,6 @@ def tela_pedido_embalagem():
         with st.container(border=True):
             st.subheader("Ações")
             st.write(f"Itens no pedido: **{len(st.session_state.itens_pedido)}**")
-
             gerar = st.button("Gerar embalagem do pedido", use_container_width=True)
             limpar = st.button("Limpar pedido", use_container_width=True)
 
@@ -695,7 +594,6 @@ def tela_pedido_embalagem():
                     st.warning("Adicione pelo menos um item ao pedido.")
                 else:
                     resultados = []
-
                     for item in st.session_state.itens_pedido:
                         instrucao = gerar_instrucao_embalagem(
                             produto=item["produto"],
@@ -718,13 +616,13 @@ def tela_pedido_embalagem():
                 st.rerun()
 
     st.subheader("Itens do pedido")
-
     if not st.session_state.itens_pedido:
         st.info("Nenhum item adicionado ainda.")
     else:
         for i, item in enumerate(st.session_state.itens_pedido):
             produto = item["produto"]
             quantidade = item["quantidade"]
+            peso_total = round(produto[6] * quantidade, 3)
 
             with st.container(border=True):
                 c1, c2 = st.columns([4, 1])
@@ -732,6 +630,7 @@ def tela_pedido_embalagem():
                     st.write(f"**{produto[1]}**")
                     st.write(f"Quantidade: **{quantidade}**")
                     st.write(f"Tipo de embalagem: **{badge_tipo(produto[5])}**")
+                    st.write(f"Peso total estimado: **{peso_total} kg**")
                 with c2:
                     if st.button("Remover", key=f"remover_item_{i}", use_container_width=True):
                         st.session_state.itens_pedido.pop(i)
@@ -744,7 +643,6 @@ def tela_pedido_embalagem():
 
     if st.session_state.resumo_pedido:
         resumo = st.session_state.resumo_pedido
-
         st.subheader("📊 Resumo consolidado")
 
         c1, c2, c3 = st.columns(3)
@@ -754,7 +652,7 @@ def tela_pedido_embalagem():
                 st.write("**📦 Caixas**")
                 if resumo["caixas"]:
                     for nome, qtd in resumo["caixas"].items():
-                        st.write(f"- {nome} → {qtd}")
+                        st.write(f"- {nome} → {qtd} volumes")
                 else:
                     st.caption("Nenhuma caixa utilizada.")
 
@@ -762,7 +660,7 @@ def tela_pedido_embalagem():
             with st.container(border=True):
                 st.write("**🧻 Filme preto**")
                 if resumo["filme_preto"] > 0:
-                    st.write(f"- {resumo['filme_preto']} itens")
+                    st.write(f"- {resumo['filme_preto']} volumes")
                 else:
                     st.caption("Sem uso de filme preto.")
 
@@ -771,7 +669,7 @@ def tela_pedido_embalagem():
                 st.write("**🫧 Plástico bolha**")
                 if resumo["plastico_bolha"]:
                     for tipo, qtd in resumo["plastico_bolha"].items():
-                        st.write(f"- {tipo} → {qtd}")
+                        st.write(f"- {tipo} → {qtd} volumes")
                 else:
                     st.caption("Sem uso de plástico bolha.")
 

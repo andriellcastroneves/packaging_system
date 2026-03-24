@@ -1,3 +1,9 @@
+import math
+
+
+LIMITE_PESO_EMBALAGEM_KG = 40.0
+
+
 def gerar_rotacoes(item):
     a, b, c = item
     return [
@@ -11,10 +17,6 @@ def gerar_rotacoes(item):
 
 
 def calcular_max_itens(item, caixa):
-    """
-    caixa no formato:
-    (id, nome, altura, largura, comprimento)
-    """
     caixa_altura = caixa[2]
     caixa_largura = caixa[3]
     caixa_comprimento = caixa[4]
@@ -68,77 +70,118 @@ def escolher_largura_bolha(altura, largura, comprimento):
     return "Plástico bolha 1 m"
 
 
+def dividir_quantidade_por_peso(quantidade, peso_unitario, limite=LIMITE_PESO_EMBALAGEM_KG):
+    if peso_unitario <= 0:
+        return [quantidade]
+
+    max_por_volume = max(1, math.floor(limite / peso_unitario))
+
+    volumes = []
+    restante = quantidade
+
+    while restante > 0:
+        qtd_volume = min(max_por_volume, restante)
+        volumes.append(qtd_volume)
+        restante -= qtd_volume
+
+    return volumes
+
+
 def gerar_instrucao_embalagem(produto, quantidade, caixas):
-    produto_id, nome, altura, largura, comprimento, tipo_embalagem = produto
+    produto_id, nome, altura, largura, comprimento, tipo_embalagem, peso_unitario = produto
     nome_upper = nome.upper().strip()
 
     resultado = {
         "produto": nome,
         "quantidade": quantidade,
+        "peso_unitario": peso_unitario,
+        "peso_total": round(peso_unitario * quantidade, 3),
         "tipo_embalagem": tipo_embalagem,
         "embalagem_principal": None,
         "observacao": None,
+        "volumes": []
     }
 
-    if tipo_embalagem in ["caixa", "blister"]:
-        item_dim = (altura, largura, comprimento)
-        melhor_caixa, capacidade, rotacao = encontrar_melhor_caixa(
-            item_dim=item_dim,
-            quantidade=quantidade,
-            caixas=caixas,
-        )
+    quantidades_por_volume = dividir_quantidade_por_peso(quantidade, peso_unitario)
 
-        if melhor_caixa:
-            resultado["embalagem_principal"] = f"Caixa: {melhor_caixa[1]}"
-            resultado["observacao"] = f"Capacidade da caixa: {capacidade} itens"
+    for idx, qtd_volume in enumerate(quantidades_por_volume, start=1):
+        peso_volume = round(qtd_volume * peso_unitario, 3)
+
+        volume_info = {
+            "numero_volume": idx,
+            "quantidade": qtd_volume,
+            "peso_total": peso_volume,
+            "embalagem_principal": None,
+            "observacao": None,
+        }
+
+        if tipo_embalagem in ["caixa", "blister"]:
+            item_dim = (altura, largura, comprimento)
+            melhor_caixa, capacidade, rotacao = encontrar_melhor_caixa(
+                item_dim=item_dim,
+                quantidade=qtd_volume,
+                caixas=caixas,
+            )
+
+            if melhor_caixa:
+                volume_info["embalagem_principal"] = f"Caixa: {melhor_caixa[1]}"
+                volume_info["observacao"] = f"Capacidade da caixa: {capacidade} itens"
+            else:
+                volume_info["embalagem_principal"] = "Nenhuma caixa encontrada"
+                volume_info["observacao"] = "Verificar manualmente"
+
+        elif tipo_embalagem in ["saco_feno_palha", "rolo_bolha"]:
+            volume_info["embalagem_principal"] = "Filme preto"
+            volume_info["observacao"] = "Aplicar 1 volta cobrindo todo o conteúdo"
+
+        elif tipo_embalagem == "rolo_cartonado":
+            material = escolher_largura_bolha(altura, largura, comprimento)
+            volume_info["embalagem_principal"] = material
+            volume_info["observacao"] = "Aplicar 3 voltas"
+
+        elif tipo_embalagem == "tampa":
+            volume_info["embalagem_principal"] = "Aguardando item principal em caixa"
+            volume_info["observacao"] = "A tampa deve acompanhar um item embalado em caixa"
+
+        elif tipo_embalagem == "caixa_desmontada":
+            material = escolher_largura_bolha(altura, largura, comprimento)
+            volume_info["embalagem_principal"] = material
+            volume_info["observacao"] = "Enrolar em plástico bolha"
+
         else:
-            resultado["embalagem_principal"] = "Nenhuma caixa encontrada"
-            resultado["observacao"] = "Verificar manualmente"
+            volume_info["embalagem_principal"] = "Tipo não mapeado"
+            volume_info["observacao"] = "Verificar cadastro do produto"
 
-    elif tipo_embalagem in ["saco_feno_palha", "rolo_bolha", "esferovite"]:
-        resultado["embalagem_principal"] = "Filme preto"
-        resultado["observacao"] = "Aplicar 1 volta cobrindo todo o conteúdo"
+        if nome_upper.startswith("VD"):
+            obs_atual = volume_info["observacao"] or ""
+            complemento = "Aplicar reforço com plástico bolha após embalagem"
+            volume_info["observacao"] = f"{obs_atual} | {complemento}" if obs_atual else complemento
 
-    elif tipo_embalagem == "rolo_cartonado":
-        material = escolher_largura_bolha(altura, largura, comprimento)
-        resultado["embalagem_principal"] = material
-        resultado["observacao"] = "Aplicar 3 voltas"
+        resultado["volumes"].append(volume_info)
 
-    elif tipo_embalagem == "tampa":
-        resultado["embalagem_principal"] = "Aguardando item principal em caixa"
-        resultado["observacao"] = "A tampa deve acompanhar um item embalado em caixa"
-
-    elif tipo_embalagem == "caixa_desmontada":
-        material = escolher_largura_bolha(altura, largura, comprimento)
-        resultado["embalagem_principal"] = material
-        resultado["observacao"] = "Enrolar em plástico bolha"
-
+    if len(resultado["volumes"]) == 1:
+        resultado["embalagem_principal"] = resultado["volumes"][0]["embalagem_principal"]
+        resultado["observacao"] = resultado["volumes"][0]["observacao"]
     else:
-        resultado["embalagem_principal"] = "Tipo não mapeado"
-        resultado["observacao"] = "Verificar cadastro do produto"
-
-    if nome_upper.startswith("VD"):
-        obs_atual = resultado["observacao"] or ""
-        complemento = "Aplicar reforço com plástico bolha após embalagem"
-        resultado["observacao"] = f"{obs_atual} | {complemento}" if obs_atual else complemento
+        resultado["embalagem_principal"] = f"{len(resultado['volumes'])} volumes"
+        resultado["observacao"] = f"Pedido dividido por peso máximo de {LIMITE_PESO_EMBALAGEM_KG} kg"
 
     return resultado
 
 
 def ajustar_tampas_no_pedido(resultados):
-    """
-    Se houver itens embalados em caixa no pedido, as tampas passam a acompanhar
-    o primeiro item principal em caixa encontrado.
-    Caso contrário, a tampa fica como verificação manual.
-    """
     item_principal_em_caixa = None
 
     for resultado in resultados:
         tipo = resultado.get("tipo_embalagem")
-        emb = resultado.get("embalagem_principal", "")
 
-        if tipo in ["caixa", "blister"] and emb.startswith("Caixa:"):
-            item_principal_em_caixa = resultado["produto"]
+        if tipo in ["caixa", "blister"]:
+            for volume in resultado.get("volumes", []):
+                emb = volume.get("embalagem_principal", "")
+                if emb.startswith("Caixa:"):
+                    item_principal_em_caixa = resultado["produto"]
+                    break
+        if item_principal_em_caixa:
             break
 
     for resultado in resultados:
@@ -146,9 +189,17 @@ def ajustar_tampas_no_pedido(resultados):
             if item_principal_em_caixa:
                 resultado["embalagem_principal"] = "Incluir junto na caixa"
                 resultado["observacao"] = f"Acompanhar item principal: {item_principal_em_caixa}"
+
+                for volume in resultado.get("volumes", []):
+                    volume["embalagem_principal"] = "Incluir junto na caixa"
+                    volume["observacao"] = f"Acompanhar item principal: {item_principal_em_caixa}"
             else:
                 resultado["embalagem_principal"] = "Verificar manualmente"
                 resultado["observacao"] = "Não há item principal embalado em caixa neste pedido"
+
+                for volume in resultado.get("volumes", []):
+                    volume["embalagem_principal"] = "Verificar manualmente"
+                    volume["observacao"] = "Não há item principal embalado em caixa neste pedido"
 
     return resultados
 
@@ -162,19 +213,39 @@ def consolidar_embalagem(resultados):
     }
 
     for r in resultados:
-        emb = r["embalagem_principal"] or ""
+        volumes = r.get("volumes", [])
 
-        if emb.startswith("Caixa:"):
-            nome_caixa = emb.replace("Caixa:", "").strip()
-            resumo["caixas"][nome_caixa] = resumo["caixas"].get(nome_caixa, 0) + 1
+        if volumes:
+            for volume in volumes:
+                emb = volume["embalagem_principal"] or ""
 
-        elif "Filme preto" in emb:
-            resumo["filme_preto"] += 1
+                if emb.startswith("Caixa:"):
+                    nome_caixa = emb.replace("Caixa:", "").strip()
+                    resumo["caixas"][nome_caixa] = resumo["caixas"].get(nome_caixa, 0) + 1
 
-        elif "Plástico bolha" in emb:
-            resumo["plastico_bolha"][emb] = resumo["plastico_bolha"].get(emb, 0) + 1
+                elif "Filme preto" in emb:
+                    resumo["filme_preto"] += 1
 
+                elif "Plástico bolha" in emb:
+                    resumo["plastico_bolha"][emb] = resumo["plastico_bolha"].get(emb, 0) + 1
+
+                elif "Incluir junto na caixa" in emb:
+                    continue
+                else:
+                    resumo["outros"].append(r["produto"])
         else:
-            resumo["outros"].append(r["produto"])
+            emb = r["embalagem_principal"] or ""
+
+            if emb.startswith("Caixa:"):
+                nome_caixa = emb.replace("Caixa:", "").strip()
+                resumo["caixas"][nome_caixa] = resumo["caixas"].get(nome_caixa, 0) + 1
+            elif "Filme preto" in emb:
+                resumo["filme_preto"] += 1
+            elif "Plástico bolha" in emb:
+                resumo["plastico_bolha"][emb] = resumo["plastico_bolha"].get(emb, 0) + 1
+            elif "Incluir junto na caixa" in emb:
+                continue
+            else:
+                resumo["outros"].append(r["produto"])
 
     return resumo
